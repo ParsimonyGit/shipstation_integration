@@ -1,0 +1,125 @@
+{
+ "autoname": "Prompt",
+ "creation": "2019-12-10 11:54:44.442858",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "api_key",
+  "api_secret",
+  "default_item_group",
+  "column_break_7",
+  "trigger_on",
+  "get_items",
+  "get_orders",
+  "get_shipments",
+  "section_break_2",
+  "shipstation_stores",
+  "carriers_section",
+  "update_carriers",
+  "carrier_data",
+  "carriers_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "API Key"
+  },
+  {
+   "fieldname": "api_secret",
+   "fieldtype": "Password",
+   "label": "API Secret"
+  },
+  {
+   "fieldname": "default_item_group",
+   "fieldtype": "Link",
+   "label": "Default Item Group",
+   "options": "Item Group"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Fedex, UPS",
+   "description": "Comma Separated List",
+   "fieldname": "trigger_on",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Ship Methods to Trigger ShipStation"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "update_carriers",
+   "fieldtype": "Button",
+   "label": "Update Carriers"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "get_items",
+   "fieldtype": "Button",
+   "label": "Get Items"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "get_orders",
+   "fieldtype": "Button",
+   "label": "Get Orders"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "get_shipments",
+   "fieldtype": "Button",
+   "label": "Get Shipments"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "shipstation_stores",
+   "fieldtype": "Table",
+   "label": "Shipstation Stores",
+   "options": "Shipstation Store"
+  },
+  {
+   "fieldname": "carriers_section",
+   "fieldtype": "Section Break",
+   "label": "Carriers"
+  },
+  {
+   "fieldname": "carrier_data",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "carrier_data"
+  },
+  {
+   "fieldname": "carriers_html",
+   "fieldtype": "HTML"
+  }
+ ],
+ "hide_toolbar": 1,
+ "modified": "2020-12-16 02:10:07.408872",
+ "modified_by": "Administrator",
+ "module": "Shipstation Integration",
+ "name": "Shipstation Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_views": 1
+}

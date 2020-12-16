@@ -1,0 +1,36 @@
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th class="col col-md-1">Name</th>
+      <th class="col col-md-1">Nickname</th>
+      <th class="col col-md-1">Account Number</th>
+      <th class="col col-md-1">Primary</th>
+      <th class="col col-md-4">Services</th>
+      <th class="col col-md-4">Packages</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for (let carrier of carriers) { %}
+      <tr>
+        <td>{{ carrier.name }}</td>
+        <td>{{ carrier.nickname }}</td>
+        <td>{{ carrier.account_number }}</td>
+        <td>{{ carrier.primary ? "<b>Primary</b>" : "" }}</td>
+        <td>
+          <ul style="list-style-type: none;">
+            {% for (let service of carrier.services) { %}
+              <li>{{ service.name }}</li>
+            {% } %}
+          </ul>
+        </td>
+        <td>
+          <ul style="list-style-type: none;">
+            {% for (let package of carrier.packages) { %}
+              <li>{{ package.name }}</li>
+            {% } %}
+          </ul>
+        </td>
+      </tr>
+    {% } %}
+  </tbody>
+</table>

@@ -1,0 +1,163 @@
+{
+ "creation": "2020-09-02 16:29:26.123536",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "is_enabled",
+  "company",
+  "store_id",
+  "cb_store",
+  "is_amazon_store",
+  "marketplace_name",
+  "store_name",
+  "amazon_marketplace",
+  "account_name",
+  "sb_stock",
+  "cb_stock",
+  "warehouse",
+  "sb_accounts",
+  "cost_center",
+  "shipping_income_account",
+  "shipping_expense_account",
+  "tax_account",
+  "cb_accounts",
+  "sales_account",
+  "expense_account"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "is_enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "columns": 1,
+   "fieldname": "store_id",
+   "fieldtype": "Data",
+   "label": "Store ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_store",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_amazon_store",
+   "fieldtype": "Check",
+   "label": "Is Amazon Store",
+   "read_only": 1
+  },
+  {
+   "fieldname": "marketplace_name",
+   "fieldtype": "Data",
+   "label": "Marketplace Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "store_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Store Name",
+   "read_only": 1,
+   "width": "2"
+  },
+  {
+   "depends_on": "eval:doc.is_amazon_store",
+   "fieldname": "amazon_marketplace",
+   "fieldtype": "Data",
+   "label": "Amazon Marketplace",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:!doc.is_amazon_store",
+   "fieldname": "account_name",
+   "fieldtype": "Data",
+   "label": "Account Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_stock",
+   "fieldtype": "Section Break",
+   "label": "Stock Defaults"
+  },
+  {
+   "fieldname": "cb_stock",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Fulfillment Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "sb_accounts",
+   "fieldtype": "Section Break",
+   "label": "Account Defaults"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "shipping_income_account",
+   "fieldtype": "Link",
+   "label": "Shipping Income Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "shipping_expense_account",
+   "fieldtype": "Link",
+   "label": "Shipping Expense Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "tax_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Tax Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "cb_accounts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_account",
+   "fieldtype": "Link",
+   "label": "Sales Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "expense_account",
+   "fieldtype": "Link",
+   "label": "Expense Account",
+   "options": "Account"
+  }
+ ],
+ "istable": 1,
+ "modified": "2020-12-16 01:39:10.578333",
+ "modified_by": "Administrator",
+ "module": "Shipstation Integration",
+ "name": "Shipstation Store",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

@@ -1,19 +1,21 @@
 if (!window.shipping)
-	window.shipping = {}
+	window.shipping = {};
 
 
 shipping.shipstation = function (frm) {
-	shipping._carrier_options()
-	shipping.add_button(frm)
+	shipping._carrier_options();
+	shipping.add_button(frm);
 }
 
 shipping.add_button = function (frm) {
-	$(".btn").find(".fa-tags").closest('.btn').remove()
-	if (!frm.doc.docstatus || frm.doc.docstatus == 2) {
-		return
+	$(".btn").find(".fa-tags").closest('.btn').remove();
+
+	if (frm.doc.docstatus !== 1) {
+		return;
 	}
+
 	frm.add_custom_button("<i class='fa fa-tags'></i> Shipping Label", function () {
-		shipping.dialog(frm)
+		shipping.dialog(frm);
 	});
 }
 
@@ -22,13 +24,15 @@ shipping._carrier_options = function () {
 		method: "shipstation_integration.shipping.get_carrier_services",
 		args: { company: frappe.user_defaults.company }
 	}).done((r) => {
-		shipping.carrier_options = r.message
+		if (r.message) {
+			shipping.carrier_options = r.message;
+		}
 	})
 }
 
 shipping.dialog = function (frm) {
-	let warnings = shipping.get_label_warnings(frm)
-	let options = shipping.carrier_options.map(a => a.nickname).join('\n')
+	let warnings = shipping.get_label_warnings(frm);
+	let options = shipping.carrier_options.map(a => a.nickname).join('\n');
 	let fields = [
 		{ 'fieldname': 'warnings', 'fieldtype': 'HTML' },
 		{ 'fieldname': 'sb0', 'fieldtype': 'Section Break' },
@@ -55,7 +59,7 @@ shipping.dialog = function (frm) {
 		{ 'fieldname': 'col_1', 'fieldtype': 'Column Break' },
 		{ 'fieldname': 'gross_weight', 'fieldtype': 'Float', 'label': 'Gross Weight', 'description': 'Total Net Weight :' + frm.doc.total_net_weight },
 		{ 'fieldname': 'total_packages', 'fieldtype': 'Int', 'label': 'Total Packages', 'description': 'Total number of items :' + frm.doc.total_qty },
-	]
+	];
 
 	let d = new frappe.ui.Dialog({
 		title: __("Create and Attach Shipping Label"),
@@ -66,7 +70,7 @@ shipping.dialog = function (frm) {
 		}
 	});
 
-	d.fields_dict.warnings.$wrapper.html(warnings)
+	d.fields_dict.warnings.$wrapper.html(warnings);
 	d.show();
 	d.$wrapper.find('.modal-dialog').css("width", "900px");
 }
@@ -80,13 +84,13 @@ shipping.create_shipping_label = function (frm, values) {
 		if (!r.exc) {
 			frm.reload_doc();
 		}
-	})
+	});
 }
 
 shipping.get_label_warnings = function (frm) {
-	let warnings = ''
+	let warnings = '';
 	if (frm.doc.customer_address === undefined) {
-		warnings += '<p style="color: red;">A customer address is required to create a label.</p>'
+		warnings += '<p style="color: red;">A customer address is required to create a label.</p>';
 	}
-	return warnings
+	return warnings;
 }

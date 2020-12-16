@@ -101,7 +101,6 @@ def create_delivery_note(shipment, sales_invoice):
 
 	for row in dn.items:
 		row.allow_zero_valuation_rate = 1  # if row.rate < 0.001 else 0
-		# row.expense_account = store.expense_account  #TODO: Check if this has been fixed. We shouldn't need this.
 
 	dn.save()
 	dn.submit()

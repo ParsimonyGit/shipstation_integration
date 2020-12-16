@@ -27,7 +27,13 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+
+# TODO: toggle again when shipping labels need to be generated
+# doctype_js = {
+# 	"Delivery Note": "public/js/delivery_note.js",
+# 	"Sales Order": "public/js/sales_order.js"
+# }
+
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -56,7 +62,7 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 # ------------
 
 # before_install = "shipstation_integration.install.before_install"
-# after_install = "shipstation_integration.install.after_install"
+after_install = "shipstation_integration.setup.after_setup"
 
 # Desk Notifications
 # ------------------

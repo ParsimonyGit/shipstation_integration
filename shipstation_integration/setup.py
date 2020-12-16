@@ -1,32 +1,77 @@
 import frappe
 from frappe import _
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
-def setup(company):
-    """
-    Currently unused, can be used when shipstation creds are injected at setup
-    """
-    if not frappe.db.exists("Shipstation Store", {"company": company}):
-        frappe.throw(_("Please setup a Shipstation store for {}".format(company)))
+def after_setup():
+	create_customer_group()
+	create_price_list()
+	setup_custom_fields()
 
-    store = frappe.get_doc('Shipstation Store', {"company": company})
-    settings = frappe.get_doc('Shipstation Settings', store.parent)
-    company_doc = frappe.get_doc("Company", company)
 
-    if not store.warehouse:
-        store.warehouse = frappe.get_single_value("Stock store", 'default_warehouse')
-    if not store.expense_account:
-        store.expense_account = company_doc.expense_account
-    if not store.sales_account:
-        store.sales_account = company_doc.sales_account
-    if not store.tax_account:
-        store.tax_account = frappe.get_value("Account", {'account_name': "Inventory Purchases", 'company': company})
+def create_customer_group():
+	if frappe.db.get_value('Customer Group', {'customer_group_name': 'ShipStation'}):
+		return
 
-    try:
-        settings.update_carriers()
-        settings.update_stores()
-        settings.create_webhooks()
-    except Exception as e:
-        frappe.log_error(
-            title="Inventory Error: Error setting up Shipstation", message=e
-        )
+	customer_group = frappe.new_doc("Customer Group")
+	customer_group.customer_group_name = 'ShipStation'
+	customer_group.parent_customer_group = 'All Customer Groups'
+	customer_group.save()
+
+
+def create_price_list():
+	if frappe.db.get_value('Price List', {'price_list_name': 'ShipStation'}):
+		return
+
+	price_list = frappe.new_doc("Price List")
+	price_list.price_list_name = 'ShipStation'
+	price_list.selling = True
+	price_list.save()
+
+
+def setup_custom_fields():
+	common_custom_fields = [
+		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
+			label="Shipstation Order ID", insert_after="sb_shipstation",
+			translatable=0),
+		dict(fieldtype="Column Break", fieldname="cb_shipstation",
+			insert_after="shipstation_order_id"),
+		dict(fieldtype="Data", fieldname="shipstation_marketplace", read_only=1,
+			label="Marketplace", insert_after="cb_shipstation", translatable=0),
+		dict(fieldtype="Data", fieldname="marketplace_order_id", read_only=1,
+			label="Marketplace Order ID", insert_after="shipstation_marketplace",
+			translatable=0),
+		dict(fieldtype="Check", fieldname="has_pii",
+			hidden=1, label="Has PII", insert_after="marketplace_order_id")
+	]
+
+	sales_order_fields = [
+		dict(fieldtype="Section Break", fieldname="sb_shipstation",
+			label="Shipstation", insert_after="tax_id"),
+	] + common_custom_fields
+
+	sales_invoice_fields = [
+		dict(fieldtype="Section Break", fieldname="sb_shipstation",
+			label="Shipstation", insert_after="amended_from"),
+	] + common_custom_fields + [
+		dict(fieldtype="Data", fieldname="shipstation_shipment_id", read_only=1,
+			label="Shipstation Shipment ID", insert_after="shipstation_order_id",
+			translatable=0)
+	]
+
+	delivery_note_fields = [
+		dict(fieldtype="Section Break", fieldname="sb_shipstation",
+			label="Shipstation", insert_after="return_against"),
+	] + common_custom_fields + [
+		dict(fieldtype="Data", fieldname="shipstation_shipment_id", read_only=1,
+			label="Shipstation Shipment ID", insert_after="shipstation_order_id",
+			translatable=0)
+	]
+
+	custom_fields = {
+		"Sales Order": sales_order_fields,
+		"Sales Invoice": sales_invoice_fields,
+		"Delivery Note": delivery_note_fields
+	}
+
+	create_custom_fields(custom_fields)

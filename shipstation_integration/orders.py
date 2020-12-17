@@ -3,7 +3,6 @@ import datetime
 import frappe
 from shipstation_integration.customer import create_customer, get_billing_address, update_customer_details
 from shipstation_integration.items import create_item
-from shipstation_integration.utils import get_marketplace
 from frappe.utils import getdate
 
 
@@ -40,49 +39,35 @@ def create_erpnext_order(order, store):
 		return
 
 	if store.is_amazon_store:
-		is_fbm_enabled = frappe.db.get_value("MWS Setup Marketplace", {
-			"enable_orders": True, "parent": store.mws_setup,
-			"marketplace_id": store.amazon_marketplace
-		}, "pull_fbm_orders")
-
-		if is_fbm_enabled:
-			existing_so = frappe.db.get_value('Sales Order',
-				{'amazon_order_id': order.order_number, "docstatus": 1})
-
-			if existing_so:
-				update_customer_details(existing_so, order)
-			else:
-				# TODO: figure out a way to rerun this later when
-				# the order has been made through the MWS integration;
-				# could be done with the `get_missing_data` function
-				pass
-
-			return
+		# allow other apps to run validations on Shipstation-Amazon orders
+		# if orders don't need to be created, stop process flow
+		process_hook = frappe.get_hooks("process_shipstation_amazon_order")
+		if process_hook:
+			should_create_order = frappe.get_attr(process_hook[0])(store, order, update_customer_details)
+			if not should_create_order:
+				return
 
 	customer = create_customer(order)
 	so = frappe.new_doc('Sales Order')
 	so.update({
 		"shipstation_order_id": order.order_id,
+		"marketplace": store.marketplace_name,
+		"marketplace_order_id": order.order_number,
 		"customer": customer.name,
 		"company": store.company,
 		"transaction_date": getdate(order.order_date),
 		"delivery_date": getdate(order.ship_date),
 		"shipping_address_name": customer.customer_primary_address,
 		"customer_primary_address": get_billing_address(customer.name),
-		"store": store.marketplace_name,
 		"integration_doctype": store.parent_doc.doctype,
-		"integration_doc": store.parent
+		"integration_doc": store.parent,
+		"has_pii": True
 	})
 
 	if store.is_amazon_store:
-		so.update({
-			"customer": get_marketplace(id=store.amazon_marketplace).sales_partner,
-			"amazon_order_id": order.order_number,
-			"amazon_marketplace": store.amazon_marketplace,
-			"amazon_customer": order.customer_email,
-			"customer_grand_total": order.amount_paid,
-			"has_pii": True
-		})
+		update_hook = frappe.get_hooks("update_shipstation_amazon_order")
+		if update_hook:
+			so = frappe.get_attr(update_hook[0])(store, order, so)
 
 	for row in getattr(order, 'items', []):
 		item_code = create_item(row, store)
@@ -123,12 +108,3 @@ def create_erpnext_order(order, store):
 	so.submit()
 	frappe.db.commit()
 	return so.name
-
-
-def get_missing_data():
-	"""
-		TODO:
-		1. Made from MWS Integration
-		2. Fulfilled by Merchant
-		3. Have "missing_customer_data" as 1
-	"""

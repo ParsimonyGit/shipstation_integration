@@ -3,13 +3,33 @@ from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
-def after_setup():
-	create_customer_group()
-	create_price_list()
-	setup_custom_fields()
+def get_setup_stages(args=None):
+	return [
+		{
+			'status': _('Creating shipstation masters'),
+			'fail_msg': _('Failed to create shipstation masters'),
+			'tasks': [
+				{
+					'fn': create_customer_group,
+					'args': args,
+					'fail_msg': _("Failed to create Shipstation Customer Group")
+				},
+				{
+					'fn': create_price_list,
+					'args': args,
+					'fail_msg': _("Failed to create Shipstation Price List")
+				},
+				{
+					'fn': setup_custom_fields,
+					'args': args,
+					'fail_msg': _("Failed to create Shipstation custom fields")
+				}
+			]
+		}
+	]
 
 
-def create_customer_group():
+def create_customer_group(args=None):
 	if frappe.db.get_value('Customer Group', {'customer_group_name': 'ShipStation'}):
 		return
 
@@ -19,7 +39,7 @@ def create_customer_group():
 	customer_group.save()
 
 
-def create_price_list():
+def create_price_list(args=None):
 	if frappe.db.get_value('Price List', {'price_list_name': 'ShipStation'}):
 		return
 
@@ -29,17 +49,19 @@ def create_price_list():
 	price_list.save()
 
 
-def setup_custom_fields():
+def setup_custom_fields(args=None):
 	common_custom_fields = [
 		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
 			label="Shipstation Order ID", insert_after="sb_shipstation",
 			translatable=0),
 		dict(fieldtype="Column Break", fieldname="cb_shipstation",
 			insert_after="shipstation_order_id"),
-		dict(fieldtype="Data", fieldname="shipstation_marketplace", read_only=1,
+		dict(fieldtype="Data", fieldname="marketplace", read_only=1,
+			label="Marketplace", insert_after="cb_shipstation", translatable=0),
+		dict(fieldtype="Data", fieldname="marketplace", read_only=1,
 			label="Marketplace", insert_after="cb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="marketplace_order_id", read_only=1,
-			label="Marketplace Order ID", insert_after="shipstation_marketplace",
+			label="Marketplace Order ID", insert_after="marketplace",
 			translatable=0),
 		dict(fieldtype="Check", fieldname="has_pii",
 			hidden=1, label="Has PII", insert_after="marketplace_order_id")

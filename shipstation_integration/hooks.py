@@ -11,6 +11,10 @@ app_color = "grey"
 app_email = "developers@parsimony.com"
 app_license = "MIT"
 
+# Setup Wizard
+# ------------
+setup_wizard_stages = "shipstation_integration.setup.get_setup_stages"
+
 # Includes in <head>
 # ------------------
 
@@ -62,7 +66,7 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 # ------------
 
 # before_install = "shipstation_integration.install.before_install"
-after_install = "shipstation_integration.setup.after_setup"
+# after_install = "shipstation_integration.install.after_install"
 
 # Desk Notifications
 # ------------------

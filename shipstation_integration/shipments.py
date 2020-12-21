@@ -13,7 +13,7 @@ def list_shipments(settings=None, last_shipment_datetime=None):
 		client = sss_doc.client()
 		client.timeout = 60
 		if not last_shipment_datetime:
-			# Get data for the last day, ShipStation API behaves oddly when it's a shorter period
+			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 		for store in sss_doc.shipstation_stores:
 			if not store.is_enabled:
@@ -37,14 +37,14 @@ def list_shipments(settings=None, last_shipment_datetime=None):
 
 def create_erpnext_shipment(shipment, store):
 	"""
-	Create a Delivery Note using shipment data from ShipStation
+	Create a Delivery Note using shipment data from Shipstation
 
 	Assumptions:
 		- Do not create Shipstation orders if it doesn't exist in Parsimony
 
 	Args:
 		shipment (ShipStationOrder): The shipment data
-		store (ShipStationStore): The current active ShipStation store
+		store (ShipStationStore): The current active Shipstation store
 
 	Returns:
 		str: The ID of the created Delivery Note, if created, otherwise None
@@ -82,7 +82,7 @@ def create_sales_invoice(shipment, store):
 		si.append('taxes', {
 			'charge_type': 'Actual',
 			'account_head': store.shipping_expense_account,
-			'description': 'ShipStation Shipping Cost',
+			'description': 'Shipstation Shipping Cost',
 			'tax_amount': -shipment.shipment_cost,
 			'cost_center': store.cost_center
 		})

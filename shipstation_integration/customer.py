@@ -58,7 +58,7 @@ def _update_address(addr, address, email, address_type):
         addr.save()
         return addr
     except Exception as e:
-        frappe.log_error(title='Error saving ShipStation Address', message=e)
+        frappe.log_error(title='Error saving Shipstation Address', message=e)
 
 
 def create_customer(order):
@@ -103,7 +103,7 @@ def create_customer(order):
         cust.save()
         return cust
     except Exception as e:
-        frappe.log_error(title='Error saving ShipStation Customer', message=e)
+        frappe.log_error(title='Error saving Shipstation Customer', message=e)
 
 
 def create_contact(order, customer_name):
@@ -120,7 +120,7 @@ def create_contact(order, customer_name):
         frappe.db.commit()
         return cont
     except Exception as e:
-        frappe.log_error(title='Error saving ShipStation Contact', message=e)
+        frappe.log_error(title='Error saving Shipstation Contact', message=e)
 
 
 def get_billing_address(customer_name):

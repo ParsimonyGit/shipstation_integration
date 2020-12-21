@@ -14,7 +14,7 @@ def list_orders(settings=None, last_order_datetime=None):
 		client = sss_doc.client()
 		client.timeout = 60
 		if not last_order_datetime:
-			# Get data for the last day, ShipStation API behaves oddly when it's a shorter period
+			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 		for store in sss_doc.shipstation_stores:
 			if not store.is_enabled:
@@ -90,7 +90,7 @@ def create_erpnext_order(order, store):
 		so.append('taxes', {
 			'charge_type': 'Actual',
 			'account_head': store.tax_account,
-			'description': 'ShipStation Tax Amount',
+			'description': 'Shipstation Tax Amount',
 			'tax_amount': order.tax_amount,
 			'cost_center': store.cost_center
 		})
@@ -99,7 +99,7 @@ def create_erpnext_order(order, store):
 		so.append('taxes', {
 			'charge_type': 'Actual',
 			'account_head': store.shipping_income_account,
-			'description': 'ShipStation Shipping Amount',
+			'description': 'Shipstation Shipping Amount',
 			'tax_amount': order.shipping_amount,
 			'cost_center': store.cost_center
 		})

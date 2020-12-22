@@ -20,6 +20,8 @@ class ShipstationSettings(Document):
 		if not self.api_key and not self.api_secret:
 			frappe.throw(frappe._("API Key and Secret are both required."))
 
+		self.validate_enabled_checks()
+
 	# def before_insert(self):
 	# 	create_defaults()
 
@@ -30,6 +32,11 @@ class ShipstationSettings(Document):
 			debug=False,
 			timeout=10
 		)
+
+	def validate_enabled_checks(self):
+		for store in self.shipstation_stores:
+			if store.enable_shipments and not store.enable_orders:
+				store.enable_shipments = False
 
 	def update_carriers(self):
 		unstructured_carriers = []

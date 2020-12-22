@@ -17,7 +17,7 @@ def list_orders(settings=None, last_order_datetime=None):
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 		for store in sss_doc.shipstation_stores:
-			if not store.is_enabled:
+			if not store.enable_orders:
 				continue
 
 			parameters = {

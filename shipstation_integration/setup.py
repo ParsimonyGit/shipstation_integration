@@ -29,6 +29,17 @@ def get_setup_stages(args=None):
 	]
 
 
+def setup_shipstation():
+	"""
+	Development function to ease the process of creating the masters
+	and custom fields
+	"""
+
+	create_customer_group()
+	create_price_list()
+	setup_custom_fields()
+
+
 def create_customer_group(args=None):
 	if frappe.db.get_value('Customer Group', {'customer_group_name': 'ShipStation'}):
 		return

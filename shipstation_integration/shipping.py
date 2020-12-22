@@ -130,7 +130,8 @@ def make_shipstation_order(doc):
 @frappe.whitelist()
 def get_carrier_services(company):
     shipstation_settings = frappe.db.get_value("Shipstation Store", {"company": company}, "parent")
-    return frappe.get_doc("Shipstation Settings", shipstation_settings)._carrier_data()
+    if shipstation_settings:
+        return frappe.get_doc("Shipstation Settings", shipstation_settings)._carrier_data()
 
 
 @frappe.whitelist()

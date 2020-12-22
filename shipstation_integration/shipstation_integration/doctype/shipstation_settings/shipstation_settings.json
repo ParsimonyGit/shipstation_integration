@@ -24,18 +24,24 @@
   {
    "fieldname": "api_key",
    "fieldtype": "Password",
-   "label": "API Key"
+   "in_list_view": 1,
+   "label": "API Key",
+   "reqd": 1
   },
   {
    "fieldname": "api_secret",
    "fieldtype": "Password",
-   "label": "API Secret"
+   "in_list_view": 1,
+   "label": "API Secret",
+   "reqd": 1
   },
   {
    "fieldname": "default_item_group",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Default Item Group",
-   "options": "Item Group"
+   "options": "Item Group",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_7",
@@ -100,7 +106,7 @@
   }
  ],
  "hide_toolbar": 1,
- "modified": "2020-12-16 02:10:07.408872",
+ "modified": "2020-12-21 00:08:11.808770",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

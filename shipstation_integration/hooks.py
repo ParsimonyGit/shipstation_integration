@@ -11,13 +11,16 @@ app_color = "grey"
 app_email = "developers@parsimony.com"
 app_license = "MIT"
 
+# Setup Wizard
+# ------------
+setup_wizard_stages = "shipstation_integration.setup.get_setup_stages"
+
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/shipstation_integration/css/shipstation_integration.css"
 app_include_js = "/assets/js/shipstation_integration.min.js"
-
 
 # include js, css files in header of web template
 # web_include_css = "/assets/shipstation_integration/css/shipstation_integration.css"
@@ -27,7 +30,13 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+
+# TODO: uncomment when shipping labels need to be generated
+# doctype_js = {
+# 	"Delivery Note": "public/js/delivery_note.js",
+# 	"Sales Order": "public/js/sales_order.js"
+# }
+
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}

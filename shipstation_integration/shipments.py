@@ -16,7 +16,7 @@ def list_shipments(settings=None, last_shipment_datetime=None):
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 		for store in sss_doc.shipstation_stores:
-			if not store.is_enabled:
+			if not (store.enable_orders or store.enable_shipments):
 				continue
 
 			parameters = {

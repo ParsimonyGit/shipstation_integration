@@ -4,15 +4,15 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "is_enabled",
   "company",
   "store_id",
+  "store_name",
   "cb_store",
+  "enable_orders",
+  "enable_shipments",
   "is_amazon_store",
   "marketplace_name",
-  "store_name",
   "amazon_marketplace",
-  "account_name",
   "sb_stock",
   "cb_stock",
   "warehouse",
@@ -20,18 +20,12 @@
   "cost_center",
   "shipping_income_account",
   "shipping_expense_account",
-  "tax_account",
   "cb_accounts",
+  "tax_account",
   "sales_account",
   "expense_account"
  ],
  "fields": [
-  {
-   "default": "0",
-   "fieldname": "is_enabled",
-   "fieldtype": "Check",
-   "label": "Enabled"
-  },
   {
    "fieldname": "company",
    "fieldtype": "Link",
@@ -76,13 +70,6 @@
    "fieldname": "amazon_marketplace",
    "fieldtype": "Data",
    "label": "Amazon Marketplace",
-   "read_only": 1
-  },
-  {
-   "depends_on": "eval:!doc.is_amazon_store",
-   "fieldname": "account_name",
-   "fieldtype": "Data",
-   "label": "Account Name",
    "read_only": 1
   },
   {
@@ -147,10 +134,23 @@
    "fieldtype": "Link",
    "label": "Expense Account",
    "options": "Account"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_orders",
+   "fieldtype": "Check",
+   "label": "Enable Orders"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_orders",
+   "fieldname": "enable_shipments",
+   "fieldtype": "Check",
+   "label": "Enable Shipments"
   }
  ],
  "istable": 1,
- "modified": "2020-12-16 01:39:10.578333",
+ "modified": "2020-12-22 04:07:12.695852",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Store",

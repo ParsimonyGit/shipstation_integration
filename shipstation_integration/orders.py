@@ -105,6 +105,12 @@ def create_erpnext_order(order, store):
 		})
 
 	so.save()
+
+	before_submit_hook = frappe.get_hooks("update_shipstation_order_before_submit")
+	if before_submit_hook:
+		so = frappe.get_attr(before_submit_hook[0])(store, so)
+		so.save()
+
 	so.submit()
 	frappe.db.commit()
 	return so.name

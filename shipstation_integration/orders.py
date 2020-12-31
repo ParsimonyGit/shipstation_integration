@@ -26,6 +26,10 @@ def list_orders(settings=None, last_order_datetime=None):
 				'create_date_end': datetime.datetime.utcnow()
 			}
 
+			update_parameter_hook = frappe.get_hooks("update_shipstation_list_order_parameters")
+			if update_parameter_hook:
+				parameters = frappe.get_attr(update_parameter_hook[0])(parameters)
+
 			orders = client.list_orders(parameters=parameters)
 			for order in orders:
 				create_erpnext_order(order, store)

@@ -69,8 +69,6 @@ def setup_custom_fields(args=None):
 			insert_after="shipstation_order_id"),
 		dict(fieldtype="Data", fieldname="marketplace", read_only=1,
 			label="Marketplace", insert_after="cb_shipstation", translatable=0),
-		dict(fieldtype="Data", fieldname="marketplace", read_only=1,
-			label="Marketplace", insert_after="cb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="marketplace_order_id", read_only=1,
 			label="Marketplace Order ID", insert_after="marketplace",
 			translatable=0),

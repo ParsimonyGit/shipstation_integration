@@ -30,7 +30,7 @@ class ShipstationSettings(Document):
 			key=self.get_password('api_key'),
 			secret=self.get_password('api_secret'),
 			debug=False,
-			timeout=10
+			timeout=30
 		)
 
 	def validate_enabled_checks(self):

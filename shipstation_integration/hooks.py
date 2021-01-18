@@ -49,7 +49,7 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# 	"Role": "home_page"
 # }
 
 # Website user home page (by function)
@@ -94,17 +94,14 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 # 		"on_update": "method",
 # 		"on_cancel": "method",
 # 		"on_trash": "method"
-#	}
+# 	}
 # }
 
 # Scheduled Tasks
 # ---------------
 
 scheduler_events = {
-	"hourly": [
-		"shipstation_integration.orders.list_orders"
-	],
-	"daily_long": [
+	"hourly_long": [
 		"shipstation_integration.orders.list_orders",
 		"shipstation_integration.shipments.list_shipments"
 	]

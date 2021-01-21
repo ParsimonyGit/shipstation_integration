@@ -24,6 +24,20 @@ class ShipstationSettings(Document):
 	def get_shipments():
 		list_shipments()
 
+	@property
+	def store_ids(self):
+		stores = json.loads(self.store_data)
+		stores = [json.loads(s) for s in stores]
+		return [s.get('storeId') for s in stores]
+
+	@property
+	def shipstation_methods(self):
+		return [t.strip() for t in self.trigger_on.split(",")]
+
+	def onload(self):
+		if self.carrier_data:
+			self.set_onload('carriers', self._carrier_data())
+
 	def validate(self):
 		if not self.api_key and not self.api_secret:
 			frappe.throw(_("API Key and Secret are both required."))
@@ -112,17 +126,3 @@ class ShipstationSettings(Document):
 					if pack['name'] == package:
 						_package = pack['code']
 		return _carrier, _service, _package
-
-	@property
-	def shipstation_methods(self):
-		return [t.strip() for t in self.trigger_on.split(",")]
-
-	def onload(self):
-		if self.carrier_data:
-			self.set_onload('carriers', self._carrier_data())
-
-	@property
-	def store_ids(self):
-		stores = json.loads(self.store_data)
-		stores = [json.loads(s) for s in stores]
-		return [s['storeId'] for s in stores]

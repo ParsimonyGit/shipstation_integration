@@ -1,7 +1,21 @@
 import frappe
 
 
-def create_item(product, store):
+def create_item(product, settings=None, store=None):
+    """
+    Create or update a Shipstation item, and setup item defaults.
+
+    Args:
+        product (ShipStationItem): The Shipstation item.
+        settings (ShipstationSettings, optional): The active Shipstation instance.
+            Defaults to None.
+        store (ShipstationStore, optional): The selected Shipstation store.
+            Defaults to None.
+
+    Returns:
+        str: The item code of the created or updated Shipstation item.
+    """
+
     if not product.sku:
         item_name = product.name[:140]
         item_code = frappe.get_value("Item", {"item_name": item_name.strip()})
@@ -10,22 +24,22 @@ def create_item(product, store):
             "Item", {"item_code": product.sku.strip()})
 
     if item_code:
-        return item_code
+        item = frappe.get_doc("Item", item_code)
+    else:
+        item = frappe.new_doc("Item")
+        item.update({
+            "item_code": product.sku or product.name[:140],
+            "item_name": product.name[:140],
+            "item_group": settings.default_item_group,
+            "is_stock_item": 1,
+            "include_item_in_manufacturing": 0,
+            "description": getattr(product, "internal_notes", product.name),
+            "weight_per_unit": getattr(product, "weight_oz", 0),
+            "weight_uom": "Ounce",
+            "end_of_life": ""
+        })
 
-    item = frappe.new_doc("Item")
-    item.update({
-        "item_code": product.sku or product.name[:140],
-        "item_name": product.name[:140],
-        "item_group": store.parent_doc.default_item_group,
-        "is_stock_item": 1,
-        "include_item_in_manufacturing": 0,
-        "description": getattr(product, "internal_notes", product.name),
-        "weight_per_unit": getattr(product, "weight_oz", 0),
-        "weight_uom": "Ounce",
-        "end_of_life": ""
-    })
-
-    if store.company:
+    if store and store.company and not item.item_defaults:
         item.set("item_defaults", [{
             "company": store.company,
             "default_price_list": "ShipStation",

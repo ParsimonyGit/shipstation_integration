@@ -87,7 +87,7 @@ class ShipstationSettings(Document):
 		if not products.results:
 			return "No products found to import"
 		for product in products:
-			create_item(product)
+			create_item(product, settings=self)
 		return "{} product(s) imported succesfully".format(len(products.results))
 
 	def _carrier_data(self):

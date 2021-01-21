@@ -73,12 +73,12 @@ def create_erpnext_order(order, store):
 		if update_hook:
 			so = frappe.get_attr(update_hook[0])(store, order, so)
 
-	for row in getattr(order, 'items', []):
-		item_code = create_item(row, store)
-		rate = getattr(row, "unit_price", 0.0)
+	for item in getattr(order, 'items', []):
+		item_code = create_item(item, settings=store.parent_doc, store=store)
+		rate = getattr(item, "unit_price", 0.0)
 		so.append('items', {
 			'item_code': item_code,
-			'qty': row.quantity,
+			'qty': item.quantity,
 			'uom': 'Nos',
 			'conversion_factor': 1,
 			'rate': rate,

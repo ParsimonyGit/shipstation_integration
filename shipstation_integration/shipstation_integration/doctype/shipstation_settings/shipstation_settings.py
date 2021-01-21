@@ -16,9 +16,17 @@ from shipstation_integration.utils import get_marketplace
 
 
 class ShipstationSettings(Document):
+	@staticmethod
+	def get_orders():
+		list_orders()
+
+	@staticmethod
+	def get_shipments():
+		list_shipments()
+
 	def validate(self):
 		if not self.api_key and not self.api_secret:
-			frappe.throw(frappe._("API Key and Secret are both required."))
+			frappe.throw(_("API Key and Secret are both required."))
 
 		self.validate_enabled_checks()
 
@@ -76,12 +84,6 @@ class ShipstationSettings(Document):
 				})
 		return self
 
-	def get_orders(self):
-		list_orders()
-
-	def get_shipments(self):
-		list_shipments()
-
 	def get_items(self):
 		products = self.client().list_products()
 		if not products.results:
@@ -101,7 +103,7 @@ class ShipstationSettings(Document):
 	def get_codes(self, carrier, service, package):
 		_carrier, _service, _package = None, None, 'Package'
 		for ss_carrier in self._carrier_data():
-			if ss_carrier['name'] == carrier or ss_carrier['nickname'] == carrier:
+			if carrier in [ss_carrier.get('name'), ss_carrier.get('nickname')]:
 				_carrier = ss_carrier['code']
 				for serv in ss_carrier['services']:
 					if serv['name'] == service:

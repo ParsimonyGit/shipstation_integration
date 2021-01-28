@@ -37,7 +37,7 @@ def create_item(product, settings, store=None):
 			"end_of_life": ""
 		})
 
-	if store and store.company and not item.item_defaults:
+	if store and store.company and not item.get("item_defaults"):
 		item.set("item_defaults", [{
 			"company": store.company,
 			"default_price_list": "ShipStation",

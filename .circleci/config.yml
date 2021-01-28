@@ -1,0 +1,18 @@
+version: 2.1
+
+jobs:
+  release:
+    docker:
+      - image: node:lts
+    steps:
+      - checkout
+      - run: npx semantic-release
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - release:
+          filters:
+            branches:
+              only: master

@@ -78,6 +78,10 @@ def create_sales_invoice(shipment, store):
 	si = make_sales_invoice(so_name)
 	si.shipstation_shipment_id = shipment.shipment_id
 
+	store_name = frappe.get_value('Sales Order', so_name, "shipstation_store_name")
+	if store_name and frappe.db.exists("Cost Center", store_name):
+		si.cost_center = store_name
+
 	if shipment.shipment_cost:
 		si.append('taxes', {
 			'charge_type': 'Actual',

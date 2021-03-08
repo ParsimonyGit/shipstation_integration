@@ -54,6 +54,7 @@ def create_erpnext_order(order, store):
 	customer = create_customer(order)
 	so = frappe.new_doc('Sales Order')
 	so.update({
+		"shipstation_store_name": store.store_name,
 		"shipstation_order_id": order.order_id,
 		"marketplace": store.marketplace_name,
 		"marketplace_order_id": order.order_number,

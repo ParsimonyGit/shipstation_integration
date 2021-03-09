@@ -3,31 +3,43 @@ import frappe
 
 def update_customer_details(existing_so, order):
     existing_so_doc = frappe.get_doc("Sales Order", existing_so)
-
     contact = create_contact(order, existing_so_doc.amazon_customer)
-    existing_so_doc.contact_person = contact.name
-    existing_so_doc.shipstation_order_id = order.order_id
-    existing_so_doc.has_pii = True
+
+    # update order details
+    _update_customer_details(existing_so_doc, contact, order)
+
+    # update invoice details
+    existing_invoice = frappe.db.get_value("Sales Invoice",
+        {"amazon_order_id": order.order_number, "docstatus": 1})
+
+    if existing_invoice:
+        existing_si_doc = frappe.get_doc("Sales Invoice", existing_invoice)
+        _update_customer_details(existing_si_doc, contact, order)
+
+
+def _update_customer_details(doc, contact, order):
+    doc.contact_person = contact.name
+    doc.shipstation_order_id = order.order_id
+    doc.has_pii = True
 
     if order.bill_to.street1:
         bill_address = create_address(
             order.bill_to,
-            existing_so_doc.amazon_customer,
+            doc.amazon_customer,
             order.customer_email,
-            'Billing'
-        )
-        existing_so_doc.customer_address = bill_address.name
+            "Billing")
+        doc.customer_address = bill_address.name
     if order.ship_to.street1:
         ship_address = update_address(
-            existing_so_doc.shipping_address_name,
+            doc.shipping_address_name,
             order.ship_to,
             order.customer_email,
-            'Shipping'
-        )
-        existing_so_doc.shipping_address_name = ship_address.name
-    existing_so_doc.flags.ignore_validate_update_after_submit = True
-    existing_so_doc.run_method("set_customer_address")
-    existing_so_doc.save()
+            "Shipping")
+        doc.shipping_address_name = ship_address.name
+
+    doc.flags.ignore_validate_update_after_submit = True
+    doc.run_method("set_customer_address")
+    doc.save()
 
 
 def create_address(address, customer, email, address_type):
@@ -124,12 +136,16 @@ def create_contact(order, customer_name):
 
 
 def get_billing_address(customer_name):
-    billing_address = frappe.db.sql("""
-    SELECT `tabAddress`.name
-    FROM `tabDynamic Link`, `tabAddress`
-    WHERE `tabDynamic Link`.link_doctype = 'Customer'
-    AND `tabDynamic Link`.link_name = %(customer_name)s
-    AND `tabAddress`.address_type = 'Billing'
-    LIMIT 1
-    """, {'customer_name': customer_name}, as_dict=True)
-    return billing_address[0].get('name') if billing_address else None
+    billing_address = frappe.db.sql_list("""
+        SELECT
+            addr.name
+        FROM
+            `tabDynamic Link` dl,
+            `tabAddress` addr
+        WHERE
+            dl.link_doctype = 'Customer'
+                AND dl.link_name = %(customer_name)s
+                AND addr.address_type = 'Billing'
+        LIMIT 1
+    """, {'customer_name': customer_name})
+    return billing_address[0] if billing_address else None

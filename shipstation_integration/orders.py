@@ -4,6 +4,7 @@ import frappe
 from shipstation_integration.customer import create_customer, get_billing_address, update_customer_details
 from shipstation_integration.items import create_item
 from frappe.utils import getdate
+from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
 
 def list_orders(settings=None, last_order_datetime=None):
@@ -117,4 +118,11 @@ def create_erpnext_order(order, store):
 
 	so.submit()
 	frappe.db.commit()
+
+	# if shipments are disabled, make an invoice against the order
+	if not store.enable_shipments:
+		si = make_sales_invoice(so.name)
+		si.save()
+		si.submit()
+
 	return so.name

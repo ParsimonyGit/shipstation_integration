@@ -77,6 +77,7 @@ def create_sales_invoice(shipment, store):
 
 	si = make_sales_invoice(so_name)
 	si.shipstation_shipment_id = shipment.shipment_id
+	si.cost_center = store.cost_center
 
 	if shipment.shipment_cost:
 		si.append('taxes', {

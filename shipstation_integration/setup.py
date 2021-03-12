@@ -62,8 +62,10 @@ def create_price_list(args=None):
 
 def setup_custom_fields(args=None):
 	common_custom_fields = [
+		dict(fieldtype="Data", fieldname="shipstation_store_name", read_only=1,
+			label="Shipstation Store", insert_after="sb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
-			label="Shipstation Order ID", insert_after="sb_shipstation",
+			label="Shipstation Order ID", insert_after="shipstation_store_name",
 			translatable=0),
 		dict(fieldtype="Column Break", fieldname="cb_shipstation",
 			insert_after="shipstation_order_id"),

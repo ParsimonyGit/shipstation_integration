@@ -1,23 +1,50 @@
 import datetime
+from typing import TYPE_CHECKING, Dict, List, Union
 
 import frappe
-from shipstation_integration.customer import create_customer, get_billing_address, update_customer_details
-from shipstation_integration.items import create_item
 from frappe.utils import getdate
 
+from shipstation_integration.customer import create_customer, get_billing_address, update_customer_details
+from shipstation_integration.items import create_item
 
-def list_orders(settings=None, last_order_datetime=None):
+if TYPE_CHECKING:
+	from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
+	from shipstation.models import ShipStationOrder
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import ShipstationStore
+	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import ShipstationSettings
+
+
+def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.datetime" = None) -> None:
+	"""
+	Fetch Shipstation orders and create Sales Orders.
+
+	By default, only orders from enabled Shipstation Settings and from the last day onwards
+	will be fetched. Optionally, a list of Shipstation Settings instances and a custom
+	start date can be passed.
+
+	Args:
+		settings (List[Dict], optional): The list of Shipstation Settings documents to fetch
+			orders. Defaults to None.
+		last_order_datetime (datetime.datetime, optional): The start date for fetching orders.
+			Defaults to None.
+	"""
+
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
+
 	for sss in settings:
-		sss_doc = frappe.get_doc("Shipstation Settings", sss.name)
+		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
 		if not sss_doc.enabled:
 			continue
+
 		client = sss_doc.client()
 		client.timeout = 60
+
 		if not last_order_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
 			if not store.enable_orders:
 				continue
@@ -33,6 +60,7 @@ def list_orders(settings=None, last_order_datetime=None):
 				parameters = frappe.get_attr(update_parameter_hook[0])(parameters)
 
 			orders = client.list_orders(parameters=parameters)
+			order: "ShipStationOrder"
 			for order in orders:
 				if not order:
 					continue
@@ -53,9 +81,20 @@ def list_orders(settings=None, last_order_datetime=None):
 				create_erpnext_order(order, store)
 
 
-def create_erpnext_order(order, store):
+def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -> Union[str, None]:
+	"""
+	Create a Sales Order from a Shipstation order.
+
+	Args:
+		order (ShipStationOrder): The Shipstation order.
+		store (ShipstationStore): The Shipstation store to set order defaults.
+
+	Returns:
+		str, None: The ID of the created Sales Order. If no items are found, returns None.
+	"""
+
 	customer = create_customer(order)
-	so = frappe.new_doc('Sales Order')
+	so: "SalesOrder" = frappe.new_doc('Sales Order')
 	so.update({
 		"shipstation_store_name": store.store_name,
 		"shipstation_order_id": order.order_id,

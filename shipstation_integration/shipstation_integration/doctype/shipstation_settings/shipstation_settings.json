@@ -5,18 +5,19 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "enabled",
   "api_key",
   "api_secret",
   "default_item_group",
   "column_break_7",
-  "trigger_on",
   "get_items",
   "get_orders",
   "get_shipments",
-  "section_break_2",
+  "update_carriers_and_stores",
+  "sb_stores",
+  "shipstation_warehouses",
   "shipstation_stores",
-  "carriers_section",
-  "update_carriers",
+  "sb_carriers",
   "carrier_data",
   "carriers_html"
  ],
@@ -48,51 +49,31 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "Fedex, UPS",
-   "description": "Comma Separated List",
-   "fieldname": "trigger_on",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Ship Methods to Trigger ShipStation"
-  },
-  {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "update_carriers",
-   "fieldtype": "Button",
-   "label": "Update Carriers"
-  },
-  {
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "get_items",
    "fieldtype": "Button",
-   "label": "Get Items"
+   "label": "Get Items",
+   "permlevel": 1
   },
   {
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "get_orders",
    "fieldtype": "Button",
-   "label": "Get Orders"
+   "label": "Get Orders",
+   "permlevel": 1
   },
   {
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "get_shipments",
    "fieldtype": "Button",
-   "label": "Get Shipments"
-  },
-  {
-   "fieldname": "section_break_2",
-   "fieldtype": "Section Break"
+   "label": "Get Shipments",
+   "permlevel": 1
   },
   {
    "fieldname": "shipstation_stores",
    "fieldtype": "Table",
    "label": "Shipstation Stores",
    "options": "Shipstation Store"
-  },
-  {
-   "fieldname": "carriers_section",
-   "fieldtype": "Section Break",
-   "label": "Carriers"
   },
   {
    "fieldname": "carrier_data",
@@ -103,10 +84,40 @@
   {
    "fieldname": "carriers_html",
    "fieldtype": "HTML"
+  },
+  {
+   "description": "Only orders from the warehouses selected in this field will be synced.",
+   "fieldname": "shipstation_warehouses",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shipstation Warehouses",
+   "options": "Shipstation Warehouse"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "sb_stores",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "sb_carriers",
+   "fieldtype": "Section Break",
+   "label": "Carriers"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "update_carriers_and_stores",
+   "fieldtype": "Button",
+   "label": "Update Carriers and Stores"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2020-12-21 00:08:11.808770",
+ "modified": "2021-03-17 05:09:55.407750",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",
@@ -121,6 +132,29 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "permlevel": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
    "share": 1,
    "write": 1
   }

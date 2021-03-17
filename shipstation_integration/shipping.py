@@ -13,12 +13,12 @@ from frappe.utils.file_manager import save_file
 
 
 @frappe.whitelist()  # scheduled daily
-def update_carriers():
+def update_carriers_and_stores():
     sss = frappe.get_list("Shipstation Settings")
     for settings in sss:
         frappe.get_cached_doc(
             'Shipstation Settings', settings.name
-        ).update_carriers().save()
+        ).update_carriers_and_stores().save()
         frappe.get_cached_doc(
             'Shipstation Settings', settings.name
         ).update_stores().save()
@@ -38,6 +38,10 @@ def create_shipping_label_folder():
 
 
 def _create_shipping_label(doc, values, user=None):
+    ss = frappe.get_cached_doc('Shipstation Settings', doc.company)
+    if not ss.enabled:
+        return
+
     if isinstance(doc, string_types):
         doc = frappe._dict(json.loads(doc))
         values = frappe._dict(json.loads(values))
@@ -48,7 +52,6 @@ def _create_shipping_label(doc, values, user=None):
     if not doc.ship_method_type:
         doc.ship_method_type = values.ship_method_type
 
-    ss = frappe.get_cached_doc('Shipstation Settings', doc.company)
     client = ss.client()
     client.timeout = 30
 
@@ -56,7 +59,7 @@ def _create_shipping_label(doc, values, user=None):
     if doc.shipstation_order_id:
         shipstation_order = client.get_order(doc.shipstation_order_id)
     else:
-        shipstation_order = make_shipstation_order(doc)
+        shipstation_order = make_shipstation_order(doc, ss)
 
     if not shipstation_order.ship_date or shipstation_order.ship_date < get_datetime(today()):
         shipstation_order.ship_date = get_datetime(doc.delivery_date or today())
@@ -101,8 +104,7 @@ def get_shipstation_address(doc, persons_name=None):
     )
 
 
-@frappe.whitelist()
-def make_shipstation_order(doc):
+def make_shipstation_order(doc, settings):
     sso = ShipStationOrder(order_number=doc.name)
     sso.order_date = get_datetime(doc.transaction_date)
     sso.ship_date = get_datetime(doc.delivery_date)
@@ -114,11 +116,10 @@ def make_shipstation_order(doc):
         frappe.get_doc("Address", doc.customer_address),
         doc.contact
     )
-    ss = frappe.get_cached_doc('Shipstation Settings', doc.company)
-    carrier_code = [c['code'] for c in ss._carrier_data()
+    carrier_code = [c['code'] for c in settings._carrier_data()
         if c['name'] == doc.ship_method_type or c['nickname'] == doc.ship_method_type]
     if doc.ship_method_type and doc.carrier_service:
-        sso.carrier_code, sso.service_code, sso.package_code = ss.get_codes(
+        sso.carrier_code, sso.service_code, sso.package_code = settings.get_codes(
             doc.ship_method_type, doc.carrier_service, doc.package_code
         )
     sso.package_code = doc.package_code if doc.get('package_code') else 'package'

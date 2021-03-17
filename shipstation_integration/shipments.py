@@ -7,9 +7,11 @@ from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
 def list_shipments(settings=None, last_shipment_datetime=None):
 	if not settings:
-		settings = frappe.get_all("Shipstation Settings")
+		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	for sss in settings:
 		sss_doc = frappe.get_doc("Shipstation Settings", sss.name)
+		if not sss_doc.enabled:
+			continue
 		client = sss_doc.client()
 		client.timeout = 60
 		if not last_shipment_datetime:

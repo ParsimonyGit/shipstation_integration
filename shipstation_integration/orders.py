@@ -8,9 +8,11 @@ from frappe.utils import getdate
 
 def list_orders(settings=None, last_order_datetime=None):
 	if not settings:
-		settings = frappe.get_all("Shipstation Settings")
+		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	for sss in settings:
 		sss_doc = frappe.get_doc("Shipstation Settings", sss.name)
+		if not sss_doc.enabled:
+			continue
 		client = sss_doc.client()
 		client.timeout = 60
 		if not last_order_datetime:
@@ -32,25 +34,26 @@ def list_orders(settings=None, last_order_datetime=None):
 
 			orders = client.list_orders(parameters=parameters)
 			for order in orders:
+				if not order:
+					continue
+				# if an order already exists, skip
+				if frappe.db.get_value('Sales Order', {'shipstation_order_id': order.order_id, "docstatus": 1}):
+					continue
+				# only create orders for warehouses defined in Shipstation Settings
+				if order.advanced_options.warehouse_id not in sss_doc.active_warehouse_ids:
+					continue
+				# allow other apps to run validations on Shipstation-Amazon orders
+				# if orders don't need to be created, stop process flow
+				if store.is_amazon_store:
+					process_hook = frappe.get_hooks("process_shipstation_amazon_order")
+					if process_hook:
+						should_create_order = frappe.get_attr(process_hook[0])(store, order, update_customer_details)
+						if not should_create_order:
+							continue
 				create_erpnext_order(order, store)
 
 
 def create_erpnext_order(order, store):
-	if not order:
-		return
-
-	if frappe.db.get_value('Sales Order', {'shipstation_order_id': order.order_id, "docstatus": 1}):
-		return
-
-	if store.is_amazon_store:
-		# allow other apps to run validations on Shipstation-Amazon orders
-		# if orders don't need to be created, stop process flow
-		process_hook = frappe.get_hooks("process_shipstation_amazon_order")
-		if process_hook:
-			should_create_order = frappe.get_attr(process_hook[0])(store, order, update_customer_details)
-			if not should_create_order:
-				return
-
 	customer = create_customer(order)
 	so = frappe.new_doc('Sales Order')
 	so.update({

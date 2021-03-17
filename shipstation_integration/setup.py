@@ -61,7 +61,13 @@ def create_price_list(args=None):
 
 
 def setup_custom_fields(args=None):
-	common_custom_fields = [
+	warehouse_fields = [
+		dict(fieldtype="Data", fieldname="shipstation_warehouse_id", read_only=1,
+			label="Shipstation Warehouse ID", insert_after="parent_warehouse",
+			translatable=0)
+	]
+
+	common_custom_sales_fields = [
 		dict(fieldtype="Data", fieldname="shipstation_store_name", read_only=1,
 			label="Shipstation Store", insert_after="sb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
@@ -81,12 +87,12 @@ def setup_custom_fields(args=None):
 	sales_order_fields = [
 		dict(fieldtype="Section Break", fieldname="sb_shipstation",
 			label="Shipstation", insert_after="tax_id"),
-	] + common_custom_fields
+	] + common_custom_sales_fields
 
 	sales_invoice_fields = [
 		dict(fieldtype="Section Break", fieldname="sb_shipstation",
 			label="Shipstation", insert_after="amended_from"),
-	] + common_custom_fields + [
+	] + common_custom_sales_fields + [
 		dict(fieldtype="Data", fieldname="shipstation_shipment_id", read_only=1,
 			label="Shipstation Shipment ID", insert_after="shipstation_order_id",
 			translatable=0)
@@ -95,7 +101,7 @@ def setup_custom_fields(args=None):
 	delivery_note_fields = [
 		dict(fieldtype="Section Break", fieldname="sb_shipstation",
 			label="Shipstation", insert_after="return_against"),
-	] + common_custom_fields + [
+	] + common_custom_sales_fields + [
 		dict(fieldtype="Data", fieldname="shipstation_shipment_id", read_only=1,
 			label="Shipstation Shipment ID", insert_after="shipstation_order_id",
 			translatable=0),
@@ -113,6 +119,7 @@ def setup_custom_fields(args=None):
 	]
 
 	custom_fields = {
+		"Warehouse": warehouse_fields,
 		"Sales Order": sales_order_fields,
 		"Sales Invoice": sales_invoice_fields,
 		"Delivery Note": delivery_note_fields

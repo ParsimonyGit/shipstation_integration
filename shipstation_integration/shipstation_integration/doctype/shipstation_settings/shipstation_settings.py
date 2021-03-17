@@ -9,6 +9,8 @@ from shipstation import ShipStation
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils.nestedset import get_root_of
+
 from shipstation_integration.items import create_item
 from shipstation_integration.orders import list_orders
 from shipstation_integration.shipments import list_shipments
@@ -31,21 +33,24 @@ class ShipstationSettings(Document):
 		return [s.get('storeId') for s in stores]
 
 	@property
-	def shipstation_methods(self):
-		return [t.strip() for t in self.trigger_on.split(",")]
+	def active_warehouse_ids(self):
+		warehouse_ids = []
+		for warehouse in self.shipstation_warehouses:
+			warehouse_id = frappe.db.get_value("Warehouse",
+				warehouse.get("warehouse"), "shipstation_warehouse_id")
+			warehouse_ids.append(warehouse_id)
+		return warehouse_ids
 
 	def onload(self):
 		if self.carrier_data:
 			self.set_onload('carriers', self._carrier_data())
 
 	def validate(self):
-		if not self.api_key and not self.api_secret:
-			frappe.throw(_("API Key and Secret are both required."))
+		self.validate_enabled_stores()
 
-		self.validate_enabled_checks()
-
-	# def before_insert(self):
-	# 	create_defaults()
+	def after_insert(self):
+		self.update_carriers_and_stores()
+		self.update_warehouses()
 
 	def client(self):
 		return ShipStation(
@@ -55,12 +60,12 @@ class ShipstationSettings(Document):
 			timeout=30
 		)
 
-	def validate_enabled_checks(self):
+	def validate_enabled_stores(self):
 		for store in self.shipstation_stores:
 			if store.enable_shipments and not store.enable_orders:
 				store.enable_shipments = False
 
-	def update_carriers(self):
+	def update_carriers_and_stores(self):
 		unstructured_carriers = []
 		carriers = self.client().list_carriers()
 		for carrier in carriers:
@@ -76,13 +81,47 @@ class ShipstationSettings(Document):
 		self.save()
 		return self
 
+	def update_warehouses(self):
+		root_warehouse = get_root_of("Warehouse")
+		if not frappe.db.exists("Warehouse", {"warehouse_name": "Shipstation Warehouses"}):
+			ss_warehouse_doc = frappe.new_doc("Warehouse")
+			ss_warehouse_doc.update({
+				"warehouse_name": "Shipstation Warehouses",
+				"parent_warehouse": root_warehouse,
+				"is_group": True
+			})
+			ss_warehouse_doc.insert()
+		parent_warehouse = frappe.get_doc("Warehouse", {"warehouse_name": "Shipstation Warehouses"})
+		warehouses = self.client().list_warehouses()
+		for warehouse in warehouses:
+			if frappe.db.exists("Warehouse", {"shipstation_warehouse_id": warehouse.warehouse_id}):
+				continue
+			warehouse_doc = frappe.new_doc("Warehouse")
+			warehouse_doc.update({
+				"shipstation_warehouse_id": warehouse.warehouse_id,
+				"warehouse_name": warehouse.warehouse_name,
+				"parent_warehouse": parent_warehouse.name
+			})
+			warehouse_doc.insert()
+
 	def update_stores(self):
-		self.set("shipstation_stores", [])
 		stores = self.client().list_stores(show_inactive=False)
 		for store in stores:
+			store_exists = False
+			for ss_store in self.shipstation_stores:
+				if store.store_id == ss_store.store_id:
+					ss_store.update({
+						"marketplace_name": store.marketplace_name,
+						"store_name": store.store_name
+					})
+					store_exists = True
+
+			if store_exists:
+				continue
+
 			if store.marketplace_name == "Amazon":
 				self.append("shipstation_stores", {
-					"enabled": 1,
+					"enable_orders": 1,
 					"is_amazon_store": 1,
 					"store_id": store.store_id,
 					"marketplace_name": get_marketplace(id=store.account_name).sales_partner,
@@ -91,7 +130,7 @@ class ShipstationSettings(Document):
 				})
 			else:
 				self.append("shipstation_stores", {
-					"enabled": 1,
+					"enable_orders": 1,
 					"store_id": store.store_id,
 					"marketplace_name": store.marketplace_name,
 					"store_name": store.store_name

@@ -117,7 +117,7 @@ def make_shipstation_order(doc, settings):
         doc.contact
     )
     carrier_code = [c['code'] for c in settings._carrier_data()
-        if c['name'] == doc.ship_method_type or c['nickname'] == doc.ship_method_type]
+        if doc.ship_method_type in [c['name'], c['nickname']]]
     if doc.ship_method_type and doc.carrier_service:
         sso.carrier_code, sso.service_code, sso.package_code = settings.get_codes(
             doc.ship_method_type, doc.carrier_service, doc.package_code

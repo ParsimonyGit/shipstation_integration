@@ -95,14 +95,18 @@ class ShipstationSettings(Document):
 		warehouses = self.client().list_warehouses()
 		for warehouse in warehouses:
 			if frappe.db.exists("Warehouse", {"shipstation_warehouse_id": warehouse.warehouse_id}):
-				continue
-			warehouse_doc = frappe.new_doc("Warehouse")
-			warehouse_doc.update({
-				"shipstation_warehouse_id": warehouse.warehouse_id,
-				"warehouse_name": warehouse.warehouse_name,
-				"parent_warehouse": parent_warehouse.name
-			})
-			warehouse_doc.insert()
+				warehouse_doc = frappe.get_doc("Warehouse",
+					{"shipstation_warehouse_id": warehouse.warehouse_id})
+			else:
+				warehouse_doc = frappe.new_doc("Warehouse")
+				warehouse_doc.update({
+					"shipstation_warehouse_id": warehouse.warehouse_id,
+					"warehouse_name": warehouse.warehouse_name,
+					"parent_warehouse": parent_warehouse.name
+				})
+				warehouse_doc.insert()
+			self.append("shipstation_warehouses", {"warehouse": warehouse_doc.name})
+		self.save()
 
 	def update_stores(self):
 		stores = self.client().list_stores(show_inactive=False)

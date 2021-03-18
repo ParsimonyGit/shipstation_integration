@@ -1,1 +1,2 @@
 shipstation_integration.patches.set_enable_checks_in_shipstation_store
+shipstation_integration.patches.update_shipstation_warehouses

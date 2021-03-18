@@ -7,7 +7,7 @@ def create_item(product, settings, store=None):
 
 	Args:
 		product (shipstation.ShipStationItem): The Shipstation item.
-		settings (ShipstationSettings, optional): The active Shipstation instance.
+		settings (ShipstationSettings, optional): A Shipstation Settings instance.
 		store (ShipstationStore, optional): The selected Shipstation store.
 			Defaults to None.
 

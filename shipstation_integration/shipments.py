@@ -1,20 +1,49 @@
 import datetime
+from typing import TYPE_CHECKING, Dict, List, Union
 
 import frappe
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_delivery_note
 from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
+if TYPE_CHECKING:
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+	from erpnext.stock.doctype.delivery_note.delivery_note import DeliveryNote
+	from shipstation.models import ShipStationOrder
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import ShipstationStore
+	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import ShipstationSettings
 
-def list_shipments(settings=None, last_shipment_datetime=None):
+
+def list_shipments(settings: List[Dict] = None, last_shipment_datetime: "datetime.datetime" = None) -> None:
+	"""
+	Fetch Shipstation shipments and create Sales Invoice and Delivery Note documents.
+
+	By default, only shipments from enabled Shipstation Settings and from the last day
+	onwards will be fetched. Optionally, a list of Shipstation Settings instances and
+	a custom start date can be passed.
+
+	Args:
+		settings (List[Dict], optional): The list of Shipstation Settings documents to
+			fetch shipments. Defaults to None.
+		last_order_datetime (datetime.datetime, optional): The start date for fetching
+			shipments. Defaults to None.
+	"""
+
 	if not settings:
-		settings = frappe.get_all("Shipstation Settings")
+		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
+
 	for sss in settings:
-		sss_doc = frappe.get_doc("Shipstation Settings", sss.name)
+		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
+		if not sss_doc.enabled:
+			continue
+
 		client = sss_doc.client()
 		client.timeout = 60
+
 		if not last_shipment_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
 			if not (store.enable_orders or store.enable_shipments):
 				continue
@@ -26,6 +55,7 @@ def list_shipments(settings=None, last_shipment_datetime=None):
 			}
 
 			shipments = client.list_shipments(parameters=parameters)
+			shipment: "ShipStationOrder"
 			for shipment in shipments:
 				if frappe.db.exists("Delivery Note",
 					{"docstatus": 1, "shipstation_order_id": shipment.order_id}):
@@ -35,7 +65,7 @@ def list_shipments(settings=None, last_shipment_datetime=None):
 					create_erpnext_shipment(shipment, store)
 
 
-def create_erpnext_shipment(shipment, store):
+def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationStore") -> Union[str, None]:
 	"""
 	Create a Delivery Note using shipment data from Shipstation
 
@@ -43,11 +73,11 @@ def create_erpnext_shipment(shipment, store):
 		- Do not create Shipstation orders if it doesn't exist in Parsimony
 
 	Args:
-		shipment (ShipStationOrder): The shipment data
-		store (ShipStationStore): The current active Shipstation store
+		shipment (ShipStationOrder): The shipment data.
+		store (ShipStationStore): The current active Shipstation store.
 
 	Returns:
-		str: The ID of the created Delivery Note, if created, otherwise None
+		str, None: The ID of the Delivery Note, if created, otherwise None.
 	"""
 
 	sales_invoice = create_sales_invoice(shipment, store)
@@ -75,8 +105,9 @@ def create_sales_invoice(shipment, store):
 	if not so_name:
 		return
 
-	si = make_sales_invoice(so_name)
+	si: "SalesInvoice" = make_sales_invoice(so_name)
 	si.shipstation_shipment_id = shipment.shipment_id
+	si.cost_center = store.cost_center
 
 	if shipment.shipment_cost:
 		si.append('taxes', {
@@ -93,7 +124,7 @@ def create_sales_invoice(shipment, store):
 
 
 def create_delivery_note(shipment, sales_invoice):
-	dn = make_delivery_note(sales_invoice.name)
+	dn: "DeliveryNote" = make_delivery_note(sales_invoice.name)
 	dn.shipstation_shipment_id = shipment.shipment_id
 	dn.carrier = shipment.carrier_code.upper()
 	dn.carrier_service = shipment.service_code.upper()

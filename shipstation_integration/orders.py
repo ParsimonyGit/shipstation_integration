@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import ShipstationSettings
 
 
-def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.datetime" = None) -> None:
+def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.datetime" = None):
 	"""
 	Fetch Shipstation orders and create Sales Orders.
 
@@ -90,7 +90,7 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 		store (ShipstationStore): The Shipstation store to set order defaults.
 
 	Returns:
-		str, None: The ID of the created Sales Order. If no items are found, returns None.
+		(str, None): The ID of the created Sales Order. If no items are found, returns None.
 	"""
 
 	customer = create_customer(order)

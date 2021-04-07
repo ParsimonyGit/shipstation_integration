@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Union
 
 import frappe
 from frappe.utils import getdate
@@ -14,7 +14,10 @@ if TYPE_CHECKING:
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import ShipstationSettings
 
 
-def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.datetime" = None) -> None:
+def list_orders(
+	settings: "ShipstationSettings" = None,
+	last_order_datetime: "datetime.datetime" = None
+):
 	"""
 	Fetch Shipstation orders and create Sales Orders.
 
@@ -23,14 +26,16 @@ def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.date
 	start date can be passed.
 
 	Args:
-		settings (List[Dict], optional): The list of Shipstation Settings documents to fetch
-			orders. Defaults to None.
+		settings (ShipstationSettings, optional): The Shipstation account to use for
+			fetching orders. Defaults to None.
 		last_order_datetime (datetime.datetime, optional): The start date for fetching orders.
 			Defaults to None.
 	"""
 
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
+	elif not isinstance(settings, list):
+		settings = [settings]
 
 	for sss in settings:
 		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
@@ -69,6 +74,9 @@ def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.date
 					continue
 				# only create orders for warehouses defined in Shipstation Settings
 				if order.advanced_options.warehouse_id not in sss_doc.active_warehouse_ids:
+					continue
+				# if a date filter is set in Shipstation Settings, don't create orders before that date
+				if sss_doc.since_date and getdate(order.create_date) < sss_doc.since_date:
 					continue
 				# allow other apps to run validations on Shipstation-Amazon orders
 				# if orders don't need to be created, stop process flow

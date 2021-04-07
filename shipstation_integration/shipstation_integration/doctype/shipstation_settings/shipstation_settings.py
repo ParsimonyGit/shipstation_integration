@@ -18,14 +18,6 @@ from shipstation_integration.utils import get_marketplace
 
 
 class ShipstationSettings(Document):
-	@staticmethod
-	def get_orders():
-		list_orders()
-
-	@staticmethod
-	def get_shipments():
-		list_shipments()
-
 	@property
 	def store_ids(self):
 		stores = json.loads(self.store_data)
@@ -51,6 +43,12 @@ class ShipstationSettings(Document):
 	def after_insert(self):
 		self.update_carriers_and_stores()
 		self.update_warehouses()
+
+	def get_orders(self):
+		list_orders(self)
+
+	def get_shipments(self):
+		list_shipments(self)
 
 	def client(self):
 		return ShipStation(

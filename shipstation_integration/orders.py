@@ -62,23 +62,37 @@ def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.date
 			orders = client.list_orders(parameters=parameters)
 			order: "ShipStationOrder"
 			for order in orders:
-				if not order:
-					continue
-				# if an order already exists, skip
-				if frappe.db.get_value('Sales Order', {'shipstation_order_id': order.order_id, "docstatus": 1}):
-					continue
-				# only create orders for warehouses defined in Shipstation Settings
-				if order.advanced_options.warehouse_id not in sss_doc.active_warehouse_ids:
-					continue
-				# allow other apps to run validations on Shipstation-Amazon orders
-				# if orders don't need to be created, stop process flow
-				if store.is_amazon_store:
-					process_hook = frappe.get_hooks("process_shipstation_amazon_order")
-					if process_hook:
-						should_create_order = frappe.get_attr(process_hook[0])(store, order, update_customer_details)
-						if not should_create_order:
-							continue
-				create_erpnext_order(order, store)
+				if validate_order(sss_doc, order, store):
+					create_erpnext_order(order, store)
+
+
+def validate_order(settings: "ShipstationSettings", order: "ShipStationOrder", store: "ShipstationStore"):
+	if not order:
+		return False
+
+	# if an order already exists, skip
+	if frappe.db.get_value('Sales Order', {'shipstation_order_id': order.order_id, "docstatus": 1}):
+		return False
+
+	# only create orders for warehouses defined in Shipstation Settings
+	if order.advanced_options.warehouse_id not in settings.active_warehouse_ids:
+		return False
+
+	# allow other apps to run validations on Shipstation-Amazon or Shipstation-Shopify
+	# orders; if an order already exists, stop process flow
+	process_hook = None
+	if store.get("is_amazon_store"):
+		process_hook = frappe.get_hooks("process_shipstation_amazon_order")
+	elif store.get("is_shopify_store"):
+		process_hook = frappe.get_hooks("process_shipstation_shopify_order")
+
+	if process_hook:
+		existing_order: Union["SalesOrder", False] = frappe.get_attr(
+			process_hook[0]
+		)(store, order, update_customer_details)
+		return not existing_order
+
+	return True
 
 
 def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -> Union[str, None]:
@@ -111,8 +125,12 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 		"has_pii": True
 	})
 
-	if store.is_amazon_store:
+	if store.get("is_amazon_store"):
 		update_hook = frappe.get_hooks("update_shipstation_amazon_order")
+		if update_hook:
+			so = frappe.get_attr(update_hook[0])(store, order, so)
+	elif store.get("is_shopify_store"):
+		update_hook = frappe.get_hooks("update_shipstation_shopify_order")
 		if update_hook:
 			so = frappe.get_attr(update_hook[0])(store, order, so)
 

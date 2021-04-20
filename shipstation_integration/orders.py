@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Union
 
 import frappe
 from frappe.utils import getdate
@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import ShipstationSettings
 
 
-def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.datetime" = None):
+def list_orders(
+	settings: "ShipstationSettings" = None, last_order_datetime: "datetime.datetime" = None
+):
 	"""
 	Fetch Shipstation orders and create Sales Orders.
 
@@ -23,14 +25,16 @@ def list_orders(settings: List[Dict] = None, last_order_datetime: "datetime.date
 	start date can be passed.
 
 	Args:
-		settings (List[Dict], optional): The list of Shipstation Settings documents to fetch
-			orders. Defaults to None.
+		settings (ShipstationSettings, optional): The Shipstation account to use for
+			fetching orders. Defaults to None.
 		last_order_datetime (datetime.datetime, optional): The start date for fetching orders.
 			Defaults to None.
 	"""
 
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
+	elif not isinstance(settings, list):
+		settings = [settings]
 
 	for sss in settings:
 		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
@@ -78,6 +82,10 @@ def validate_order(settings: "ShipstationSettings", order: "ShipStationOrder", s
 	if order.advanced_options.warehouse_id not in settings.active_warehouse_ids:
 		return False
 
+	# if a date filter is set in Shipstation Settings, don't create orders before that date
+	if settings.since_date and getdate(order.create_date) < settings.since_date:
+		return False
+
 	# allow other apps to run validations on Shipstation-Amazon or Shipstation-Shopify
 	# orders; if an order already exists, stop process flow
 	process_hook = None
@@ -87,7 +95,7 @@ def validate_order(settings: "ShipstationSettings", order: "ShipStationOrder", s
 		process_hook = frappe.get_hooks("process_shipstation_shopify_order")
 
 	if process_hook:
-		existing_order: Union["SalesOrder", False] = frappe.get_attr(
+		existing_order: Union["SalesOrder", bool] = frappe.get_attr(
 			process_hook[0]
 		)(store, order, update_customer_details)
 		return not existing_order

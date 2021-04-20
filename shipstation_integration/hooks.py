@@ -126,10 +126,3 @@ scheduler_events = {
 # override_doctype_dashboards = {
 # 	"Task": "shipstation_integration.task.get_dashboard_data"
 # }
-
-
-# Cross-application Hooks
-# ------------------------------
-
-# Check for existing orders for https://github.com/ParsimonyGit/shopify_integration
-validate_existing_shopify_document = "shipstation_integration.hook_functions.shopify.validate_existing_shopify_document"

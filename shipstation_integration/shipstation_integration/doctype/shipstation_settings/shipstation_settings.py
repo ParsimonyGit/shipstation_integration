@@ -3,6 +3,7 @@
 # For license information, please see license.txt
 
 import json
+from typing import List
 
 from shipstation import ShipStation
 
@@ -25,7 +26,7 @@ class ShipstationSettings(Document):
 		return [s.get('storeId') for s in stores]
 
 	@property
-	def active_warehouse_ids(self):
+	def active_warehouse_ids(self) -> List[str]:
 		warehouse_ids = []
 		for warehouse in self.shipstation_warehouses:
 			warehouse_id = frappe.db.get_value("Warehouse",
@@ -123,11 +124,19 @@ class ShipstationSettings(Document):
 
 			if store.marketplace_name == "Amazon":
 				self.append("shipstation_stores", {
-					"enable_orders": 1,
 					"is_amazon_store": 1,
+					"amazon_marketplace": store.account_name,
+					"enable_orders": 1,
 					"store_id": store.store_id,
 					"marketplace_name": get_marketplace(id=store.account_name).sales_partner,
-					"amazon_marketplace": store.account_name,
+					"store_name": store.store_name
+				})
+			elif store.marketplace_name == "Shopify":
+				self.append("shipstation_stores", {
+					"is_shopify_store": 1,
+					"enable_orders": 1,
+					"store_id": store.store_id,
+					"marketplace_name": store.marketplace_name,
 					"store_name": store.store_name
 				})
 			else:

@@ -9,11 +9,11 @@
   "cb_store",
   "enable_orders",
   "enable_shipments",
-  "is_amazon_store",
   "marketplace_name",
+  "sb_amazon",
+  "is_amazon_store",
   "amazon_marketplace",
   "sb_stock",
-  "cb_stock",
   "warehouse",
   "sb_accounts",
   "cost_center",
@@ -75,10 +75,6 @@
    "fieldname": "sb_stock",
    "fieldtype": "Section Break",
    "label": "Stock Defaults"
-  },
-  {
-   "fieldname": "cb_stock",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "warehouse",
@@ -146,10 +142,15 @@
    "fieldname": "enable_shipments",
    "fieldtype": "Check",
    "label": "Enable Shipments"
+  },
+  {
+   "fieldname": "sb_amazon",
+   "fieldtype": "Section Break",
+   "label": "Amazon"
   }
  ],
  "istable": 1,
- "modified": "2021-03-17 04:46:17.351526",
+ "modified": "2021-04-20 05:51:44.972714",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Store",

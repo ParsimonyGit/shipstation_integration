@@ -31,11 +31,10 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 
 # include js in doctype views
 
-# TODO: uncomment when shipping labels need to be generated
-# doctype_js = {
-# 	"Delivery Note": "public/js/delivery_note.js",
-# 	"Sales Order": "public/js/sales_order.js"
-# }
+doctype_js = {
+	"Delivery Note": "public/js/delivery_note.js",
+	"Sales Order": "public/js/sales_order.js"
+}
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

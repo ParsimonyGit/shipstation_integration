@@ -1,143 +1,173 @@
 import json
 from io import BytesIO
+from typing import TYPE_CHECKING, List
 
 from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStationWeight
-from six import string_types
 
 import frappe
-from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
 from frappe import _
 from frappe.contacts.doctype.address.address import Address
 from frappe.utils.data import get_datetime, today
 from frappe.utils.file_manager import save_file
 
-
-@frappe.whitelist()  # scheduled daily
-def update_carriers_and_stores():
-    sss = frappe.get_list("Shipstation Settings")
-    for settings in sss:
-        frappe.get_cached_doc(
-            'Shipstation Settings', settings.name
-        ).update_carriers_and_stores().save()
-        frappe.get_cached_doc(
-            'Shipstation Settings', settings.name
-        ).update_stores().save()
+if TYPE_CHECKING:
+	from frappe.core.doctype.file.file import File
+	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
+		ShipstationSettings
+	)
 
 
 @frappe.whitelist()
-def create_shipping_label(doc, values):
-    create_shipping_label_folder()
-    _create_shipping_label(doc, values, user=frappe.session.user)
+def update_carriers_and_stores():  # scheduled daily
+	settings_list: List["ShipstationSettings"] = frappe.get_list("Shipstation Settings")
+	for settings in settings_list:
+		settings_doc: "ShipstationSettings" = frappe.get_cached_doc(
+			"Shipstation Settings", settings.name
+		)
+		settings_doc.update_carriers_and_stores().save()
+		settings_doc.update_stores().save()
+
+
+@frappe.whitelist()
+def create_shipping_label(doc: str, values: str):
+	create_shipping_label_folder()
+	_create_shipping_label(doc, values, user=frappe.session.user)
 
 
 def create_shipping_label_folder():
-    if not frappe.db.get_value("File", "Home/Shipstation Labels"):
-        folder = frappe.new_doc("File").update(
-            {"file_name": "Shipstation Labels", "is_folder": True, "folder": "Home"}
-        ).save()
+	if not frappe.db.get_value("File", "Home/Shipstation Labels"):
+		folder: "File" = frappe.new_doc("File")
+		folder.update(
+			{"file_name": "Shipstation Labels", "is_folder": True, "folder": "Home"}
+		)
+		folder.save()
 
 
-def _create_shipping_label(doc, values, user=None):
-    ss = frappe.get_cached_doc('Shipstation Settings', doc.company)
-    if not ss.enabled:
-        return
+def _create_shipping_label(doc: str, values: str, user: str = str()):
+	if isinstance(doc, str):
+		doc: frappe._dict = frappe._dict(json.loads(doc))
+		values: frappe._dict = frappe._dict(json.loads(values))
 
-    if isinstance(doc, string_types):
-        doc = frappe._dict(json.loads(doc))
-        values = frappe._dict(json.loads(values))
+	settings: "ShipstationSettings" = frappe.get_cached_doc(
+		"Shipstation Settings", doc.integration_doc
+	)
+	if not settings.enabled:
+		return
 
-    values.package = 'package' if values.package.lower() == 'package' else values.package
-    doc.carrier_service = values.service
-    doc.package_code = values.package
-    if not doc.ship_method_type:
-        doc.ship_method_type = values.ship_method_type
+	values.package = (
+		"package" if values.package.lower() == "package" else values.package
+	)
 
-    client = ss.client()
-    client.timeout = 30
+	doc.carrier_service = values.service
+	doc.package_code = values.package
 
-    # build the shipstation label payload
-    if doc.shipstation_order_id:
-        shipstation_order = client.get_order(doc.shipstation_order_id)
-    else:
-        shipstation_order = make_shipstation_order(doc, ss)
+	if not doc.ship_method_type:
+		doc.ship_method_type = values.ship_method_type
 
-    if not shipstation_order.ship_date or shipstation_order.ship_date < get_datetime(today()):
-        shipstation_order.ship_date = get_datetime(doc.delivery_date or today())
+	client = settings.client()
+	client.timeout = 30
 
-    shipstation_order.weight = ShipStationWeight(value=values.gross_weight, units='pounds')
+	# build the shipstation label payload
+	if doc.shipstation_order_id:
+		shipstation_order = client.get_order(doc.shipstation_order_id)
+	else:
+		shipstation_order = make_shipstation_order(doc)
 
-    # generate and save the shipping label for the order
-    pdf = client.create_label_for_order(shipstation_order, test_label=True, pdf=True)
+	update_carrier_code(doc, shipstation_order, settings)
 
-    if not isinstance(pdf, BytesIO):
-        message = "There was an error generating the label. Please contact your administrator."
-        if isinstance(pdf, dict) and pdf.get("ExceptionMessage"):
-            message = pdf.get("ExceptionMessage")
-        frappe.throw(_(message))
+	if not shipstation_order.ship_date or shipstation_order.ship_date < get_datetime(
+		today()
+	):
+		shipstation_order.ship_date = get_datetime(doc.delivery_date or today())
 
-    file = save_file(doc.name + "_shipstation.pdf", pdf.getvalue(), doc.doctype,
-        doc.name, folder="Home/Shipstation Labels", decode=False, is_private=0, df=None)
+	shipstation_order.weight = ShipStationWeight(
+		value=values.gross_weight, units="pounds"
+	)
 
-    if user:
-        push_attachment_update(file, user)
+	# generate and save the shipping label for the order
+	pdf = client.create_label_for_order(shipstation_order, test_label=True, pdf=True)
 
+	if not isinstance(pdf, BytesIO):
+		message = "There was an error generating the label. Please contact your administrator."
+		if isinstance(pdf, dict) and pdf.get("ExceptionMessage"):
+			message = pdf.get("ExceptionMessage")
+		frappe.throw(_(message))
 
-@frappe.whitelist()
-def get_shipstation_address(doc, persons_name=None):
-    if not isinstance(doc, Address):
-        frappe.throw("An address object is required")
-    country_code = frappe.get_value("Country", doc.country, "code").upper()
-    if not persons_name and not doc.address_title:
-        frappe.throw('Please edit this address to have either a persons name or address title.')
-    name = persons_name if persons_name else doc.address_title
-    company = doc.address_title if persons_name else None
-    return ShipStationAddress(
-        name=name,
-        company=company,
-        street1=doc.address_line1,
-        street2=doc.address_line2,
-        city=doc.city,
-        state=doc.state,
-        postal_code=doc.pincode,
-        phone=doc.phone,
-        country=country_code
-    )
+	file: "File" = save_file(
+		doc.name + "_shipstation.pdf",
+		pdf.getvalue(),
+		doc.doctype,
+		doc.name,
+		folder="Home/Shipstation Labels",
+		decode=False,
+		is_private=0,
+		df=None
+	)
+
+	if user:
+		push_attachment_update(file, user)
 
 
-def make_shipstation_order(doc, settings):
-    sso = ShipStationOrder(order_number=doc.name)
-    sso.order_date = get_datetime(doc.transaction_date)
-    sso.ship_date = get_datetime(doc.delivery_date)
-    sso.order_status = 'awaiting_shipment'
-    sso.ship_to = get_shipstation_address(
-        frappe.get_doc("Address", doc.shipping_address_name)
-    )
-    sso.bill_to = get_shipstation_address(
-        frappe.get_doc("Address", doc.customer_address),
-        doc.contact
-    )
-    carrier_code = [c['code'] for c in settings._carrier_data()
-        if doc.ship_method_type in [c['name'], c['nickname']]]
-    if doc.ship_method_type and doc.carrier_service:
-        sso.carrier_code, sso.service_code, sso.package_code = settings.get_codes(
-            doc.ship_method_type, doc.carrier_service, doc.package_code
-        )
-    sso.package_code = doc.package_code if doc.get('package_code') else 'package'
-    if doc.shipstation_order_id:
-        sso.order_id = doc.shipstation_order_id
-    return sso
+def update_carrier_code(doc: frappe._dict, order: "ShipStationOrder", settings: "ShipstationSettings"):
+	if doc.ship_method_type and doc.carrier_service:
+		order.carrier_code, order.service_code, order.package_code = settings.get_codes(
+			doc.ship_method_type, doc.carrier_service, doc.package_code
+		)
 
 
 @frappe.whitelist()
-def get_carrier_services(company):
-    shipstation_settings = frappe.db.get_value("Shipstation Store", {"company": company}, "parent")
-    if shipstation_settings:
-        return frappe.get_doc("Shipstation Settings", shipstation_settings)._carrier_data()
+def get_shipstation_address(address: Address, person_name: str = str()):
+	if not isinstance(address, Address):
+		frappe.throw("An address object is required")
+
+	if not person_name and not address.address_title:
+		frappe.throw(
+			"Please edit this address to have either a person's name or address title."
+		)
+
+	name = person_name or address.address_title
+	company = address.address_title if person_name else None
+	country_code = frappe.get_value("Country", address.country, "code").upper()
+	return ShipStationAddress(
+		name=name,
+		company=company,
+		street1=address.address_line1,
+		street2=address.address_line2,
+		city=address.city,
+		state=address.state,
+		postal_code=address.pincode,
+		phone=address.phone,
+		country=country_code
+	)
+
+
+def make_shipstation_order(doc: frappe._dict):
+	shipstation_order = ShipStationOrder(order_number=doc.name)
+	shipstation_order.order_date = get_datetime(doc.transaction_date)
+	shipstation_order.ship_date = get_datetime(doc.delivery_date)
+	shipstation_order.order_status = "awaiting_shipment"
+	shipstation_order.ship_to = get_shipstation_address(
+		frappe.get_doc("Address", doc.shipping_address_name)
+	)
+	shipstation_order.bill_to = get_shipstation_address(
+		frappe.get_doc("Address", doc.customer_address), doc.contact
+	)
+	shipstation_order.package_code = doc.package_code or "package"
+	if doc.shipstation_order_id:
+		shipstation_order.order_id = doc.shipstation_order_id
+	return shipstation_order
 
 
 @frappe.whitelist()
-def push_attachment_update(attachment, user):
-    js = "if(cur_frm.doc.name =='" + \
-        attachment.attached_to_name + \
-        "'){cur_frm.refresh()}"
-    frappe.publish_realtime("eval_js", js, user=frappe.session.user)
+def get_carrier_services(settings: str):
+	if settings:
+		shipstation_settings: "ShipstationSettings" = frappe.get_doc(
+			"Shipstation Settings", settings
+		)
+		return shipstation_settings._carrier_data()
+
+
+@frappe.whitelist()
+def push_attachment_update(attachment: "File", user: str):
+	js = f"if (cur_frm.doc.name =='{attachment.attached_to_name}') {{cur_frm.refresh();}}"
+	frappe.publish_realtime("eval_js", js, user=user or frappe.session.user)

@@ -32,9 +32,9 @@ shipping.add_label_button = (frm) => {
 }
 
 shipping.dialog = (frm) => {
-	let warnings = shipping.get_label_warnings(frm);
-	let options = shipping.carrier_options.map(a => a.nickname || a.name).join("\n");
-	let fields = [
+	const warnings = shipping.get_label_warnings(frm);
+	const options = shipping.carrier_options.map(a => a.nickname || a.name).join("\n");
+	const fields = [
 		{ fieldname: "warnings", fieldtype: "HTML" },
 		{ fieldname: "sb_label", fieldtype: "Section Break" },
 		{
@@ -43,15 +43,13 @@ shipping.dialog = (frm) => {
 			label: "Carrier",
 			options: options,
 			onchange: () => {
-				let values = dialog.get_values();
+				const values = dialog.get_values();
 				if (values.ship_method_type) {
-					let carrier = shipping.carrier_options.find(a => ((a.nickname || a.name) === values.ship_method_type));
-
-					let packages = carrier.packages.map(a => a.name).join("\n");
+					const carrier = shipping.carrier_options.find(a => ((a.nickname || a.name) === values.ship_method_type));
+					const packages = carrier.packages.map(a => a.name).join("\n");
 					dialog.set_df_property("package", "options", packages);
 					dialog.set_df_property("package", "read_only", 0);
-
-					let services = carrier.services.map(a => a.name).join("\n");
+					const services = carrier.services.map(a => a.name).join("\n");
 					dialog.set_df_property("service", "options", services);
 					dialog.set_df_property("service", "read_only", 0);
 				}
@@ -64,7 +62,7 @@ shipping.dialog = (frm) => {
 		{ fieldname: "total_packages", fieldtype: "Int", label: "Total Packages", description: `Total number of items: ${frm.doc.total_qty}` }
 	];
 
-	let dialog = new frappe.ui.Dialog({
+	const dialog = new frappe.ui.Dialog({
 		title: __("Create and Attach Shipping Label"),
 		fields: fields,
 		primary_action: () => {
@@ -92,9 +90,7 @@ shipping.create_shipping_label = (frm, values) => {
 }
 
 shipping.get_label_warnings = (frm) => {
-	if (frm.doc.customer_address) {
-		return "";
-	} else {
-		return `<p style="color: red;">A customer address is required to create a label.</p>`;
-	}
+	return frm.doc.customer_address
+		? ""
+		: `<p style="color: red;">A customer address is required to create a label.</p>`;
 }

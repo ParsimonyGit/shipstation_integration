@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import frappe
 from frappe.utils import getdate
@@ -61,8 +61,12 @@ def list_shipments(
 			}
 
 			shipments = client.list_shipments(parameters=parameters)
-			shipment: "ShipStationOrder"
+			shipment: Optional["ShipStationOrder"]
 			for shipment in shipments:
+				# sometimes Shipstation will return `None` in the response
+				if not shipment:
+					continue
+
 				# if a date filter is set in Shipstation Settings, don't create orders before that date
 				if sss_doc.since_date and getdate(shipment.create_date) < sss_doc.since_date:
 					continue

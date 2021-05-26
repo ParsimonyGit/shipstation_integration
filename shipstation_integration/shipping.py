@@ -1,6 +1,7 @@
+import base64
 import json
 from io import BytesIO
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStationWeight
 
@@ -48,9 +49,14 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 		doc: frappe._dict = frappe._dict(json.loads(doc))
 		values: frappe._dict = frappe._dict(json.loads(values))
 
+	settings_name = get_shipstation_settings(doc)
+	if not settings_name:
+		frappe.throw(_("No Shipstation order reference found"))
+
 	settings: "ShipstationSettings" = frappe.get_cached_doc(
-		"Shipstation Settings", doc.integration_doc
+		"Shipstation Settings", settings_name
 	)
+
 	if not settings.enabled:
 		return
 
@@ -85,30 +91,58 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 	)
 
 	# generate and save the shipping label for the order
-	pdf = client.create_label_for_order(shipstation_order, test_label=True, pdf=True)
+	shipment = client.create_label_for_order(shipstation_order, test_label=True)
+	if isinstance(shipment, dict) and shipment.get("ExceptionMessage"):
+		process_error(
+			shipment,
+			message="There was an error generating the label. Please contact your administrator."
+		)
 
+	pdf = BytesIO(base64.b64decode(shipment.label_data))
+	file = attach_shipping_label(pdf, doc.doctype, doc.name)
+
+	if doc.doctype == "Delivery Note":
+		frappe.db.set_value(doc.doctype, doc.name, "shipstation_shipment_id", shipment.shipment_id)
+		frappe.db.set_value(doc.doctype, doc.name, "carrier", shipment.carrier_code.upper())
+		frappe.db.set_value(doc.doctype, doc.name, "carrier_service", shipment.service_code.upper())
+		frappe.db.set_value(doc.doctype, doc.name, "tracking_number", shipment.tracking_number)
+
+	if user:
+		push_attachment_update(file, user)
+
+
+def attach_shipping_label(pdf: BytesIO, doctype: str, name: str):
 	if not isinstance(pdf, BytesIO):
-		message = "There was an error generating the label. Please contact your administrator."
-		if isinstance(pdf, dict) and pdf.get("ExceptionMessage"):
-			message = pdf.get("ExceptionMessage")
-		frappe.throw(_(message))
+		process_error(
+			pdf,
+			message="There was an error attaching the label. Please contact your administrator."
+		)
 
 	file: "File" = save_file(
-		doc.name + "_shipstation.pdf",
+		name + "_shipstation.pdf",
 		pdf.getvalue(),
-		doc.doctype,
-		doc.name,
+		doctype,
+		name,
 		folder="Home/Shipstation Labels",
 		decode=False,
 		is_private=0,
 		df=None
 	)
 
-	if user:
-		push_attachment_update(file, user)
+	return file
 
 
-def update_carrier_code(doc: frappe._dict, order: "ShipStationOrder", settings: "ShipstationSettings"):
+def process_error(response: Dict, message: str = str()):
+	if not message:
+		message = "There was an error processing the request. Please contact your administrator."
+	if isinstance(response, dict) and response.get("ExceptionMessage"):
+		message = response.get("ExceptionMessage")
+	frappe.throw(_(message))
+
+
+def update_carrier_code(
+	doc: frappe._dict, order: "ShipStationOrder", settings: "ShipstationSettings"
+):
 	if doc.ship_method_type and doc.carrier_service:
 		order.carrier_code, order.service_code, order.package_code = settings.get_codes(
 			doc.ship_method_type, doc.carrier_service, doc.package_code
@@ -165,6 +199,21 @@ def get_carrier_services(settings: str):
 			"Shipstation Settings", settings
 		)
 		return shipstation_settings._carrier_data()
+
+
+@frappe.whitelist()
+def get_shipstation_settings(doc: str) -> Optional[str]:
+	if isinstance(doc, str):
+		doc = frappe._dict(json.loads(doc))
+
+	if doc.integration_doctype == "Shipstation Settings" and doc.integration_doc:
+		settings = doc.integration_doc
+	elif doc.shipstation_store_name:
+		settings = frappe.db.get_value(
+			"Shipstation Store", {"store_name": doc.shipstation_store_name}, "parent"
+		)
+
+	return settings
 
 
 @frappe.whitelist()

@@ -8,17 +8,25 @@ shipping.shipstation = (frm) => {
 }
 
 shipping.build_carrier_options = (frm) => {
+	// since we may only have the Shipstation Store reference, and Frappe doesn't let
+	// you query child tables from the frontend, making a server call
 	frappe.call({
-		method: "shipstation_integration.shipping.get_carrier_services",
-		// TODO(Shipstation): The integration document can be any one of the active integrations
-		// that is creating the order, and may not always be Shipstation
-		args: { settings: frm.doc.integration_doc },
+		method: "shipstation_integration.shipping.get_shipstation_settings",
+		args: { doc: frm.doc },
 		callback: (r) => {
 			if (r.message) {
-				shipping.carrier_options = r.message;
+				frappe.call({
+					method: "shipstation_integration.shipping.get_carrier_services",
+					args: { settings: r.message },
+					callback: (r) => {
+						if (r.message) {
+							shipping.carrier_options = r.message;
+						}
+					}
+				});
 			}
 		}
-	});
+	})
 }
 
 shipping.add_label_button = (frm) => {
@@ -27,6 +35,11 @@ shipping.add_label_button = (frm) => {
 	if (frm.doc.docstatus !== 1) return;
 
 	frm.add_custom_button(`<i class="fa fa-tags"></i> Shipping Label`, () => {
+		if (!shipping.carrier_options) {
+			frappe.throw(__(`No carriers found to process labels. Please ensure the current
+				document is connected to Shipstation.`))
+		}
+
 		shipping.dialog(frm);
 	});
 }

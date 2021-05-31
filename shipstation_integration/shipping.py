@@ -206,6 +206,7 @@ def get_shipstation_settings(doc: str) -> Optional[str]:
 	if isinstance(doc, str):
 		doc = frappe._dict(json.loads(doc))
 
+	settings = None
 	if doc.integration_doctype == "Shipstation Settings" and doc.integration_doc:
 		settings = doc.integration_doc
 	elif doc.shipstation_store_name:

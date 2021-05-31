@@ -1,6 +1,8 @@
 import datetime
 from typing import TYPE_CHECKING, Optional, Union
 
+from httpx import HTTPError
+
 import frappe
 from frappe.utils import getdate
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_delivery_note
@@ -60,7 +62,12 @@ def list_shipments(
 				'create_date_end': datetime.datetime.utcnow()
 			}
 
-			shipments = client.list_shipments(parameters=parameters)
+			try:
+				shipments = client.list_shipments(parameters=parameters)
+			except HTTPError as e:
+				frappe.log_error(title="Error while fetching Shipstation shipment", message=e)
+				continue
+
 			shipment: Optional["ShipStationOrder"]
 			for shipment in shipments:
 				# sometimes Shipstation will return `None` in the response

@@ -1,6 +1,8 @@
 import datetime
 from typing import TYPE_CHECKING, Union
 
+from httpx import HTTPError
+
 import frappe
 from frappe.utils import getdate
 
@@ -63,7 +65,12 @@ def list_orders(
 			if update_parameter_hook:
 				parameters = frappe.get_attr(update_parameter_hook[0])(parameters)
 
-			orders = client.list_orders(parameters=parameters)
+			try:
+				orders = client.list_orders(parameters=parameters)
+			except HTTPError as e:
+				frappe.log_error(title="Error while fetching Shipstation orders", message=e)
+				continue
+
 			order: "ShipStationOrder"
 			for order in orders:
 				if validate_order(sss_doc, order, store):

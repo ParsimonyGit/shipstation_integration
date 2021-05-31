@@ -3,6 +3,7 @@ import json
 from io import BytesIO
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from httpx import HTTPError
 from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStationWeight
 
 import frappe
@@ -75,7 +76,11 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 
 	# build the shipstation label payload
 	if doc.shipstation_order_id:
-		shipstation_order = client.get_order(doc.shipstation_order_id)
+		try:
+			shipstation_order = client.get_order(doc.shipstation_order_id)
+		except HTTPError as e:
+			response = e.response.json()
+			process_error(response)
 	else:
 		shipstation_order = make_shipstation_order(doc)
 
@@ -91,7 +96,12 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 	)
 
 	# generate and save the shipping label for the order
-	shipment = client.create_label_for_order(shipstation_order, test_label=True)
+	try:
+		shipment = client.create_label_for_order(shipstation_order, test_label=True)
+	except HTTPError as e:
+		response = e.response.json()
+		process_error(response)
+
 	if isinstance(shipment, dict) and shipment.get("ExceptionMessage"):
 		process_error(
 			shipment,
@@ -119,14 +129,12 @@ def attach_shipping_label(pdf: BytesIO, doctype: str, name: str):
 		)
 
 	file: "File" = save_file(
-		name + "_shipstation.pdf",
-		pdf.getvalue(),
-		doctype,
-		name,
+		fname=name + "_shipstation.pdf",
+		content=pdf.getvalue(),
+		dt=doctype,
+		dn=name,
 		folder="Home/Shipstation Labels",
-		decode=False,
-		is_private=0,
-		df=None
+		is_private=True
 	)
 
 	return file

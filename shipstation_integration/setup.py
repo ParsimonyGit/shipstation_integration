@@ -72,7 +72,7 @@ def setup_custom_fields(args=None):
 			label="Shipstation Store", insert_after="sb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
 			label="Shipstation Order ID", insert_after="shipstation_store_name",
-			translatable=0),
+			in_standard_filter=1, translatable=0),
 		dict(fieldtype="Column Break", fieldname="cb_shipstation",
 			insert_after="shipstation_order_id"),
 		dict(fieldtype="Data", fieldname="marketplace", read_only=1,

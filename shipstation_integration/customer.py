@@ -18,21 +18,38 @@ def update_customer_details(existing_so: str, order: "ShipStationOrder"):
     existing_so_doc.has_pii = True
 
     if order.bill_to and order.bill_to.street1:
-        bill_address = create_address(
-            order.bill_to,
-            existing_so_doc.amazon_customer,
-            order.customer_email,
-            "Billing"
-        )
-        existing_so_doc.customer_address = bill_address.name
+        if existing_so_doc.customer_address:
+            bill_address = update_address(
+                order.bill_to,
+                existing_so_doc.customer_address,
+                order.customer_email,
+                "Billing"
+            )
+        else:
+            bill_address = create_address(
+                order.bill_to,
+                existing_so_doc.amazon_customer,
+                order.customer_email,
+                "Billing"
+            )
+            existing_so_doc.customer_address = bill_address.name
     if order.ship_to and order.ship_to.street1:
-        ship_address = update_address(
-            existing_so_doc.shipping_address_name,
-            order.ship_to,
-            order.customer_email,
-            "Shipping"
-        )
-        existing_so_doc.shipping_address_name = ship_address.name
+        if existing_so_doc.shipping_address_name:
+            ship_address = update_address(
+                order.ship_to,
+                existing_so_doc.shipping_address_name,
+                order.customer_email,
+                "Shipping"
+            )
+        else:
+            ship_address = create_address(
+                order.ship_to,
+                existing_so_doc.amazon_customer,
+                order.customer_email,
+                "Shipping"
+            )
+            existing_so_doc.shipping_address_name = ship_address.name
+
     existing_so_doc.flags.ignore_validate_update_after_submit = True
     existing_so_doc.run_method("set_customer_address")
     existing_so_doc.save()
@@ -44,20 +61,20 @@ def create_address(
 ):
     addr: "Address" = frappe.new_doc("Address")
     addr.append("links", {"link_doctype": "Customer", "link_name": customer})
-    _update_address(addr, address, email, address_type)
+    _update_address(address, addr, email, address_type)
     return addr
 
 
 def update_address(
-    address_name: str, address: "ShipStationAddress", email: str, address_type: str
+    address: "ShipStationAddress", address_name: str, email: str, address_type: str
 ):
     addr: "Address" = frappe.get_doc("Address", address_name)
-    _update_address(addr, address, email, address_type)
+    _update_address(address, addr, email, address_type)
     return addr
 
 
 def _update_address(
-    addr: "Address", address: "ShipStationAddress", email: str, address_type: str
+    address: "ShipStationAddress", addr: "Address", email: str, address_type: str
 ):
     addr.address_type = address_type
     addr.address_line1 = address.street1
@@ -137,14 +154,15 @@ def create_contact(order: "ShipStationOrder", customer_name: str):
 
 
 def get_billing_address(customer_name: str):
-    billing_address = frappe.db.sql("""
-        SELECT `tabAddress`.name
-        FROM `tabDynamic Link`, `tabAddress`
-        WHERE `tabDynamic Link`.link_doctype = 'Customer'
-        AND `tabDynamic Link`.link_name = %(customer_name)s
-        AND `tabAddress`.address_type = 'Billing'
-        LIMIT 1
-    """,
+    billing_address = frappe.db.sql(
+        """
+            SELECT `tabAddress`.name
+            FROM `tabDynamic Link`, `tabAddress`
+            WHERE `tabDynamic Link`.link_doctype = 'Customer'
+            AND `tabDynamic Link`.link_name = %(customer_name)s
+            AND `tabAddress`.address_type = 'Billing'
+            LIMIT 1
+        """,
         {"customer_name": customer_name},
         as_dict=True
     )

@@ -1,7 +1,7 @@
 import base64
 import json
 from io import BytesIO
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional
 
 from httpx import HTTPError
 from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStationWeight
@@ -140,7 +140,7 @@ def attach_shipping_label(pdf: BytesIO, doctype: str, name: str):
 	return file
 
 
-def process_error(response: Dict, message: str = str()):
+def process_error(response: Dict, message: str = str()) -> NoReturn:
 	if not message:
 		message = "There was an error processing the request. Please contact your administrator."
 	if isinstance(response, dict) and response.get("ExceptionMessage"):

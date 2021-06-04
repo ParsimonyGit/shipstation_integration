@@ -10,10 +10,7 @@ The following workflows are available in this application:
 - Configure individual stores in each ShipStation account to different companies, warehouses, cost centers and account heads.
 - Periodically fetch products, orders and shipments from all ShipStation accounts.
 - Identify stores connected to the Amazon marketplace, and add hooks for other Frappe applications to process Amazon orders.
-
-## In-Progress
-
-- Shipping label generation (currently disabled in hooks, but can be enabled and tested manually)
+- Shipping label generation (can be enabled per Shipstation account)
 
 ## Installation
 
@@ -23,15 +20,6 @@ bench get-app https://github.com/ParsimonyGit/shipstation_integration
 
 # install the application onto a new site
 bench --site <site_name> install-app shipstation_integration
-```
-
-For new sites, the custom ShipStation fields will be added after the completion of the setup wizard.
-
-For existing sites, execute the following function to setup the custom fields:
-
-```bash
-# execute the following function to setup the custom fields
-bench execute --site <site_name> shipstation_integration.setup.setup_shipstation
 ```
 
 ## Dependencies

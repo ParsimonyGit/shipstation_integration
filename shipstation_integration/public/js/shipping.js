@@ -34,14 +34,27 @@ shipping.add_label_button = (frm) => {
 
 	if (frm.doc.docstatus !== 1) return;
 
-	frm.add_custom_button(`<i class="fa fa-tags"></i> Shipping Label`, () => {
-		if (!shipping.carrier_options) {
-			frappe.throw(__(`No carriers found to process labels. Please ensure the current
-				document is connected to Shipstation.`))
+	frappe.call({
+		method: "shipstation_integration.shipping.get_shipstation_settings",
+		args: { doc: frm.doc },
+		callback: (r) => {
+			if (r.message) {
+				frappe.db.get_value("Shipstation Settings", { name: r.message }, "enable_label_generation")
+					.then((r) => {
+						if (r.message.enable_label_generation) {
+							frm.add_custom_button(`<i class="fa fa-tags"></i> Shipping Label`, () => {
+								if (!shipping.carrier_options) {
+									frappe.throw(__(`No carriers found to process labels. Please ensure the current
+										document is connected to Shipstation.`))
+								} else {
+									shipping.dialog(frm);
+								}
+							});
+						}
+					})
+			}
 		}
-
-		shipping.dialog(frm);
-	});
+	})
 }
 
 shipping.dialog = (frm) => {

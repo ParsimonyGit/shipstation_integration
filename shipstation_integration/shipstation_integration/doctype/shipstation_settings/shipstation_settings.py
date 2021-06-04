@@ -39,6 +39,7 @@ class ShipstationSettings(Document):
 			self.set_onload('carriers', self._carrier_data())
 
 	def validate(self):
+		self.validate_label_generation()
 		self.validate_enabled_stores()
 
 	def after_insert(self):
@@ -58,6 +59,10 @@ class ShipstationSettings(Document):
 			debug=False,
 			timeout=30
 		)
+
+	def validate_label_generation(self):
+		if not self.enabled and self.enable_label_generation:
+			self.enable_label_generation = False
 
 	def validate_enabled_stores(self):
 		for store in self.shipstation_stores:

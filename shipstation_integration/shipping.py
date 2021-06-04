@@ -97,7 +97,7 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 
 	# generate and save the shipping label for the order
 	try:
-		shipment = client.create_label_for_order(shipstation_order, test_label=True)
+		shipment = client.create_label_for_order(shipstation_order)
 	except HTTPError as e:
 		response = e.response.json()
 		process_error(response)

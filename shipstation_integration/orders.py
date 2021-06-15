@@ -148,7 +148,7 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 		so.append('items', {
 			'item_code': item_code,
 			'qty': item.quantity,
-			'uom': 'Nos',
+			'uom': 'Ea',
 			'conversion_factor': 1,
 			'rate': rate,
 			'warehouse': store.warehouse

@@ -53,7 +53,7 @@ def list_shipments(
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
-			if not (store.enable_orders or store.enable_shipments):
+			if not store.enable_shipments:
 				continue
 
 			parameters = {

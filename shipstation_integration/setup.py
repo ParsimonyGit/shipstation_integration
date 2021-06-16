@@ -85,12 +85,12 @@ def setup_custom_fields(args=None):
 	]
 
 	sales_order_fields = [
-		dict(fieldtype="Section Break", fieldname="sb_shipstation",
+		dict(fieldtype="Section Break", fieldname="sb_shipstation", collapsible=1,
 			label="Shipstation", insert_after="tax_id"),
 	] + common_custom_sales_fields
 
 	sales_invoice_fields = [
-		dict(fieldtype="Section Break", fieldname="sb_shipstation",
+		dict(fieldtype="Section Break", fieldname="sb_shipstation", collapsible=1,
 			label="Shipstation", insert_after="amended_from"),
 	] + common_custom_sales_fields + [
 		dict(fieldtype="Data", fieldname="shipstation_shipment_id", read_only=1,
@@ -99,23 +99,23 @@ def setup_custom_fields(args=None):
 	]
 
 	delivery_note_fields = [
-		dict(fieldtype="Section Break", fieldname="sb_shipstation",
+		dict(fieldtype="Section Break", fieldname="sb_shipstation", collapsible=1,
 			label="Shipstation", insert_after="return_against"),
 	] + common_custom_sales_fields + [
 		dict(fieldtype="Data", fieldname="shipstation_shipment_id", read_only=1,
 			label="Shipstation Shipment ID", insert_after="shipstation_order_id",
 			translatable=0),
-		dict(fieldtype="Section Break", fieldname="shipment_details",
+		dict(fieldtype="Section Break", fieldname="sb_shipment", collapsible=1,
 			label="Shipment Details", insert_after="has_pii"),
 		dict(fieldtype="Data", fieldname="carrier", read_only=1,
-			label="Carrier", insert_after="shipment_details", translatable=0),
+			label="Carrier", insert_after="sb_shipment", translatable=0),
 		dict(fieldtype="Data", fieldname="tracking_number", read_only=1,
 			label="Tracking Number", insert_after="carrier", translatable=0),
-		dict(fieldtype="Column Break", fieldname="columnbreak91",
+		dict(fieldtype="Column Break", fieldname="cb_shipment",
 			insert_after="tracking_number"),
 		dict(fieldtype="Data", fieldname="carrier_service", read_only=1,
-			label="Carrier Service", insert_after="columnbreak91",
-			translatable=0),
+			label="Carrier Service", insert_after="cb_shipment",
+			translatable=0)
 	]
 
 	custom_fields = {

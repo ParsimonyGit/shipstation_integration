@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
+  "enable_label_generation",
   "api_key",
   "api_secret",
   "default_item_group",
@@ -127,10 +128,17 @@
    "fieldname": "since_date",
    "fieldtype": "Date",
    "label": "Since Date"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enabled",
+   "fieldname": "enable_label_generation",
+   "fieldtype": "Check",
+   "label": "Enable Label Generation"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2021-04-07 06:20:38.594518",
+ "modified": "2021-06-04 07:34:34.161535",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

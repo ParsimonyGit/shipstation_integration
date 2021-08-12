@@ -74,7 +74,14 @@ def list_orders(
 			order: "ShipStationOrder"
 			for order in orders:
 				if validate_order(sss_doc, order, store):
-					create_erpnext_order(order, store)
+					should_create_order = True
+
+					process_order_hook = frappe.get_hooks("process_shipstation_order")
+					if process_order_hook:
+						should_create_order = frappe.get_attr(process_order_hook[0])(order, store)
+
+					if should_create_order:
+						create_erpnext_order(order, store)
 
 
 def validate_order(settings: "ShipstationSettings", order: "ShipStationOrder", store: "ShipstationStore"):

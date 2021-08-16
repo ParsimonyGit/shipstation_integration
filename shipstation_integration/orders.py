@@ -127,6 +127,7 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 	so.update({
 		"shipstation_store_name": store.store_name,
 		"shipstation_order_id": order.order_id,
+		"shipstation_customer_notes": getattr(order, "customer_notes", None),
 		"marketplace": store.marketplace_name,
 		"marketplace_order_id": order.order_number,
 		"customer": customer.name,

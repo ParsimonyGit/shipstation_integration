@@ -73,8 +73,11 @@ def setup_custom_fields(args=None):
 		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
 			label="Shipstation Order ID", insert_after="shipstation_store_name",
 			in_standard_filter=1, translatable=0),
+		dict(fieldtype="Long Text", fieldname="shipstation_customer_notes", read_only=1,
+			label="Shipstation Customer Notes", insert_after="shipstation_order_id",
+			translatable=0),
 		dict(fieldtype="Column Break", fieldname="cb_shipstation",
-			insert_after="shipstation_order_id"),
+			insert_after="shipstation_customer_notes"),
 		dict(fieldtype="Data", fieldname="marketplace", read_only=1,
 			label="Marketplace", insert_after="cb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="marketplace_order_id", read_only=1,
@@ -118,9 +121,17 @@ def setup_custom_fields(args=None):
 			translatable=0)
 	]
 
+	sales_order_item_fields = [
+		dict(fieldtype="Section Break", fieldname="sb_shipstation", collapsible=1,
+			label="Shipstation", insert_after="weight_uom"),
+		dict(fieldtype="Long Text", fieldname="shipstation_item_notes", read_only=1,
+			label="Shipstation Item Notes", insert_after="sb_shipstation", translatable=0),
+	]
+
 	custom_fields = {
 		"Warehouse": warehouse_fields,
 		"Sales Order": sales_order_fields,
+		"Sales Order Item": sales_order_item_fields,
 		"Sales Invoice": sales_invoice_fields,
 		"Delivery Note": delivery_note_fields
 	}

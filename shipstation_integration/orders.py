@@ -1,23 +1,32 @@
 import datetime
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from httpx import HTTPError
 
 import frappe
 from frappe.utils import getdate
 
-from shipstation_integration.customer import create_customer, get_billing_address, update_customer_details
+from shipstation_integration.customer import (
+	create_customer,
+	get_billing_address,
+	update_customer_details,
+)
 from shipstation_integration.items import create_item
 
 if TYPE_CHECKING:
 	from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
-	from shipstation.models import ShipStationOrder
-	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import ShipstationStore
-	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import ShipstationSettings
+	from shipstation.models import ShipStationOrder, ShipStationOrderItem
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
+		ShipstationStore,
+	)
+	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
+		ShipstationSettings,
+	)
 
 
 def list_orders(
-	settings: "ShipstationSettings" = None, last_order_datetime: "datetime.datetime" = None
+	settings: "ShipstationSettings" = None,
+	last_order_datetime: datetime.datetime = None,
 ):
 	"""
 	Fetch Shipstation orders and create Sales Orders.
@@ -39,7 +48,9 @@ def list_orders(
 		settings = [settings]
 
 	for sss in settings:
-		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
+		sss_doc: "ShipstationSettings" = frappe.get_doc(
+			"Shipstation Settings", sss.name
+		)
 		if not sss_doc.enabled:
 			continue
 
@@ -48,7 +59,9 @@ def list_orders(
 
 		if not last_order_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
-			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(
+				hours=24
+			)
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
@@ -56,19 +69,23 @@ def list_orders(
 				continue
 
 			parameters = {
-				'store_id': store.store_id,
-				'create_date_start': last_order_datetime,
-				'create_date_end': datetime.datetime.utcnow()
+				"store_id": store.store_id,
+				"create_date_start": last_order_datetime,
+				"create_date_end": datetime.datetime.utcnow(),
 			}
 
-			update_parameter_hook = frappe.get_hooks("update_shipstation_list_order_parameters")
+			update_parameter_hook = frappe.get_hooks(
+				"update_shipstation_list_order_parameters"
+			)
 			if update_parameter_hook:
 				parameters = frappe.get_attr(update_parameter_hook[0])(parameters)
 
 			try:
 				orders = client.list_orders(parameters=parameters)
 			except HTTPError as e:
-				frappe.log_error(title="Error while fetching Shipstation orders", message=e)
+				frappe.log_error(
+					title="Error while fetching Shipstation orders", message=e
+				)
 				continue
 
 			order: "ShipStationOrder"
@@ -84,12 +101,18 @@ def list_orders(
 						create_erpnext_order(order, store)
 
 
-def validate_order(settings: "ShipstationSettings", order: "ShipStationOrder", store: "ShipstationStore"):
+def validate_order(
+	settings: "ShipstationSettings",
+	order: "ShipStationOrder",
+	store: "ShipstationStore",
+):
 	if not order:
 		return False
 
 	# if an order already exists, skip
-	if frappe.db.get_value('Sales Order', {'shipstation_order_id': order.order_id, "docstatus": 1}):
+	if frappe.db.get_value(
+		"Sales Order", {"shipstation_order_id": order.order_id, "docstatus": 1}
+	):
 		return False
 
 	# only create orders for warehouses defined in Shipstation Settings
@@ -109,15 +132,17 @@ def validate_order(settings: "ShipstationSettings", order: "ShipStationOrder", s
 		process_hook = frappe.get_hooks("process_shipstation_shopify_order")
 
 	if process_hook:
-		existing_order: Union["SalesOrder", bool] = frappe.get_attr(
-			process_hook[0]
-		)(store, order, update_customer_details)
+		existing_order: Union["SalesOrder", bool] = frappe.get_attr(process_hook[0])(
+			store, order, update_customer_details
+		)
 		return not existing_order
 
 	return True
 
 
-def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -> Union[str, None]:
+def create_erpnext_order(
+	order: "ShipStationOrder", store: "ShipstationStore"
+) -> Optional[str]:
 	"""
 	Create a Sales Order from a Shipstation order.
 
@@ -130,22 +155,25 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 	"""
 
 	customer = create_customer(order)
-	so: "SalesOrder" = frappe.new_doc('Sales Order')
-	so.update({
-		"shipstation_store_name": store.store_name,
-		"shipstation_order_id": order.order_id,
-		"marketplace": store.marketplace_name,
-		"marketplace_order_id": order.order_number,
-		"customer": customer.name,
-		"company": store.company,
-		"transaction_date": getdate(order.order_date),
-		"delivery_date": getdate(order.ship_date),
-		"shipping_address_name": customer.customer_primary_address,
-		"customer_primary_address": get_billing_address(customer.name),
-		"integration_doctype": "Shipstation Settings",
-		"integration_doc": store.parent,
-		"has_pii": True
-	})
+	so: "SalesOrder" = frappe.new_doc("Sales Order")
+	so.update(
+		{
+			"shipstation_store_name": store.store_name,
+			"shipstation_order_id": order.order_id,
+			"shipstation_customer_notes": getattr(order, "customer_notes", None),
+			"marketplace": store.marketplace_name,
+			"marketplace_order_id": order.order_number,
+			"customer": customer.name,
+			"company": store.company,
+			"transaction_date": getdate(order.order_date),
+			"delivery_date": getdate(order.ship_date),
+			"shipping_address_name": customer.customer_primary_address,
+			"customer_primary_address": get_billing_address(customer.name),
+			"integration_doctype": "Shipstation Settings",
+			"integration_doc": store.parent,
+			"has_pii": True,
+		}
+	)
 
 	if store.get("is_amazon_store"):
 		update_hook = frappe.get_hooks("update_shipstation_amazon_order")
@@ -156,41 +184,57 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 		if update_hook:
 			so = frappe.get_attr(update_hook[0])(store, order, so)
 
-	for item in getattr(order, 'items', []):
-		settings = frappe.get_doc("Shipstation Settings", store.parent)
-		item_code = create_item(item, settings=settings, store=store)
-		rate = getattr(item, "unit_price", 0.0)
-		so.append('items', {
-			'item_code': item_code,
-			'qty': item.quantity,
-			'uom': 'Nos',
-			'conversion_factor': 1,
-			'rate': rate,
-			'warehouse': store.warehouse
-		})
-
-	if not so.get('items'):
+	# using `hasattr` over `getattr` to use type annotations
+	order_items = order.items if hasattr(order, "items") else []
+	if not order_items:
 		return
 
-	so.dont_update_if_missing = ['customer_name', 'base_total_in_words']
+	for item in order_items:
+		settings = frappe.get_doc("Shipstation Settings", store.parent)
+		item_code = create_item(item, settings=settings, store=store)
+		item_notes = get_item_notes(item)
+		rate = item.unit_price if hasattr(item, "unit_price") else None
+		so.append(
+			"items",
+			{
+				"item_code": item_code,
+				"qty": item.quantity,
+				"uom": "Nos",
+				"conversion_factor": 1,
+				"rate": rate,
+				"warehouse": store.warehouse,
+				"shipstation_item_notes": item_notes
+			},
+		)
+
+	if not so.get("items"):
+		return
+
+	so.dont_update_if_missing = ["customer_name", "base_total_in_words"]
 
 	if order.tax_amount:
-		so.append('taxes', {
-			'charge_type': 'Actual',
-			'account_head': store.tax_account,
-			'description': 'Shipstation Tax Amount',
-			'tax_amount': order.tax_amount,
-			'cost_center': store.cost_center
-		})
+		so.append(
+			"taxes",
+			{
+				"charge_type": "Actual",
+				"account_head": store.tax_account,
+				"description": "Shipstation Tax Amount",
+				"tax_amount": order.tax_amount,
+				"cost_center": store.cost_center,
+			},
+		)
 
 	if order.shipping_amount:
-		so.append('taxes', {
-			'charge_type': 'Actual',
-			'account_head': store.shipping_income_account,
-			'description': 'Shipstation Shipping Amount',
-			'tax_amount': order.shipping_amount,
-			'cost_center': store.cost_center
-		})
+		so.append(
+			"taxes",
+			{
+				"charge_type": "Actual",
+				"account_head": store.shipping_income_account,
+				"description": "Shipstation Shipping Amount",
+				"tax_amount": order.shipping_amount,
+				"cost_center": store.cost_center,
+			},
+		)
 
 	so.save()
 
@@ -202,3 +246,14 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 	so.submit()
 	frappe.db.commit()
 	return so.name
+
+
+def get_item_notes(item: "ShipStationOrderItem"):
+	notes = None
+	item_options = item.options if hasattr(item, "options") else None
+	if item_options:
+		for option in item_options:
+			if option.name == "Description":
+				notes = option.value
+				break
+	return notes

@@ -142,7 +142,7 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 		"delivery_date": getdate(order.ship_date),
 		"shipping_address_name": customer.customer_primary_address,
 		"customer_primary_address": get_billing_address(customer.name),
-		"integration_doctype": store.parent_doc.doctype,
+		"integration_doctype": "Shipstation Settings",
 		"integration_doc": store.parent,
 		"has_pii": True
 	})
@@ -157,7 +157,8 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 			so = frappe.get_attr(update_hook[0])(store, order, so)
 
 	for item in getattr(order, 'items', []):
-		item_code = create_item(item, settings=store.parent_doc, store=store)
+		settings = frappe.get_doc("Shipstation Settings", store.parent)
+		item_code = create_item(item, settings=settings, store=store)
 		rate = getattr(item, "unit_price", 0.0)
 		so.append('items', {
 			'item_code': item_code,

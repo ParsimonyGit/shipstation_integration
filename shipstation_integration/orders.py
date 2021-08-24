@@ -184,6 +184,7 @@ def create_erpnext_order(
 		if update_hook:
 			so = frappe.get_attr(update_hook[0])(store, order, so)
 
+	# using `hasattr` over `getattr` to use type annotations
 	order_items = order.items if hasattr(order, "items") else []
 	if not order_items:
 		return

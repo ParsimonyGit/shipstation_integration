@@ -91,7 +91,14 @@ def list_orders(
 			order: "ShipStationOrder"
 			for order in orders:
 				if validate_order(sss_doc, order, store):
-					create_erpnext_order(order, store)
+					should_create_order = True
+
+					process_order_hook = frappe.get_hooks("process_shipstation_order")
+					if process_order_hook:
+						should_create_order = frappe.get_attr(process_order_hook[0])(order, store)
+
+					if should_create_order:
+						create_erpnext_order(order, store)
 
 
 def validate_order(
@@ -162,7 +169,7 @@ def create_erpnext_order(
 			"delivery_date": getdate(order.ship_date),
 			"shipping_address_name": customer.customer_primary_address,
 			"customer_primary_address": get_billing_address(customer.name),
-			"integration_doctype": store.parent_doc.doctype,
+			"integration_doctype": "Shipstation Settings",
 			"integration_doc": store.parent,
 			"has_pii": True,
 		}
@@ -182,7 +189,8 @@ def create_erpnext_order(
 		return
 
 	for item in order_items:
-		item_code = create_item(item, settings=store.parent_doc, store=store)
+		settings = frappe.get_doc("Shipstation Settings", store.parent)
+		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)
 		rate = item.unit_price if hasattr(item, "unit_price") else None
 		so.append(

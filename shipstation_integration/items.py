@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 		ShipstationSettings,
 	)
 
-NON_STOCK_ITEM_KEYWORDS = ["coupon"]
-
 
 def create_item(
 	product: Union[ShipStationItem, ShipStationOrderItem],
@@ -47,17 +45,13 @@ def create_item(
 	if item_code:
 		item = frappe.get_doc("Item", item_code)
 	else:
-		is_stock_item = not any(
-			keyword.lower() in item_name.lower() for keyword in NON_STOCK_ITEM_KEYWORDS
-		)
-
 		item = frappe.new_doc("Item")
 		item.update(
 			{
 				"item_code": product.sku or item_name,
 				"item_name": item_name,
 				"item_group": settings.default_item_group,
-				"is_stock_item": is_stock_item,
+				"is_stock_item": True,
 				"include_item_in_manufacturing": 0,
 				"description": getattr(product, "internal_notes", product.name),
 				"end_of_life": "",

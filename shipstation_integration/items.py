@@ -18,7 +18,7 @@ def create_item(
 	product: Union[ShipStationItem, ShipStationOrderItem],
 	settings: "ShipstationSettings",
 	store: Optional["ShipstationStore"] = None,
-):
+) -> str:
 	"""
 	Create or update a Shipstation item, and setup item defaults.
 
@@ -33,11 +33,14 @@ def create_item(
 		str: The item code of the created or updated Shipstation item.
 	"""
 
+	item_name = product.name[:140]
 	if not product.sku:
-		item_name = product.name[:140]
-		item_code = frappe.get_value("Item", {"item_name": item_name.strip()})
+		item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
 	else:
-		item_code = frappe.get_value("Item", {"item_code": product.sku.strip()})
+		item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
+		item_name = (
+			frappe.db.get_value("Item", item_code, "item_name") or item_name
+		)
 
 	if item_code:
 		item = frappe.get_doc("Item", item_code)
@@ -45,10 +48,10 @@ def create_item(
 		item = frappe.new_doc("Item")
 		item.update(
 			{
-				"item_code": product.sku or product.name[:140],
-				"item_name": product.name[:140],
+				"item_code": product.sku or item_name,
+				"item_name": item_name,
 				"item_group": settings.default_item_group,
-				"is_stock_item": 1,
+				"is_stock_item": True,
 				"include_item_in_manufacturing": 0,
 				"description": getattr(product, "internal_notes", product.name),
 				"end_of_life": "",

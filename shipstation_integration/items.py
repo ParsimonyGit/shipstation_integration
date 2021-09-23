@@ -45,6 +45,18 @@ def create_item(
 	if item_code:
 		item = frappe.get_doc("Item", item_code)
 	else:
+		weight_per_unit, weight_uom = 1.0, "Ounce"
+		if isinstance(product, ShipStationItem):
+			weight_per_unit = flt(getattr(product, "weight_oz", 1))
+		elif isinstance(product, ShipStationOrderItem):
+			weight = product.weight if hasattr(product, "weight") else frappe._dict()
+			if weight:
+				weight_per_unit = flt(weight.value) if weight else 1
+				weight_uom = weight.units.title() if weight and weight.units else "Ounce"
+				if weight_uom == "Ounces":
+					# map Shipstation UOM to ERPNext UOM
+					weight_uom = "Ounce"
+
 		item = frappe.new_doc("Item")
 		item.update(
 			{
@@ -52,31 +64,13 @@ def create_item(
 				"item_name": item_name,
 				"item_group": settings.default_item_group,
 				"is_stock_item": True,
-				"include_item_in_manufacturing": 0,
+				"include_item_in_manufacturing": False,
 				"description": getattr(product, "internal_notes", product.name),
+				"weight_per_unit": weight_per_unit,
+				"weight_uom": weight_uom,
 				"end_of_life": "",
 			}
 		)
-
-	# update weight values
-	weight_per_unit, weight_uom = 1.0, "Ounce"
-	if isinstance(product, ShipStationItem):
-		weight_per_unit = flt(getattr(product, "weight_oz", 1))
-	elif isinstance(product, ShipStationOrderItem):
-		weight = product.weight if hasattr(product, "weight") else frappe._dict()
-		if weight:
-			weight_per_unit = flt(weight.value) if weight else 1
-			weight_uom = weight.units.title() if weight and weight.units else "Ounce"
-			if weight_uom == "Ounces":
-				# map Shipstation UOM to ERPNext UOM
-				weight_uom = "Ounce"
-
-	item.update(
-		{
-			"weight_per_unit": weight_per_unit,
-			"weight_uom": weight_uom,
-		}
-	)
 
 	# create item defaults, if missing
 	if store and store.company and not item.get("item_defaults"):

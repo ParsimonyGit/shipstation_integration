@@ -73,18 +73,24 @@ def setup_custom_fields(args=None):
 		dict(fieldtype="Data", fieldname="shipstation_order_id", read_only=1,
 			label="Shipstation Order ID", insert_after="shipstation_store_name",
 			in_standard_filter=1, translatable=0),
-		dict(fieldtype="Long Text", fieldname="shipstation_customer_notes", read_only=1,
-			label="Shipstation Customer Notes", insert_after="shipstation_order_id",
-			translatable=0),
 		dict(fieldtype="Column Break", fieldname="cb_shipstation",
-			insert_after="shipstation_customer_notes"),
+			insert_after="shipstation_order_id"),
 		dict(fieldtype="Data", fieldname="marketplace", read_only=1,
 			label="Marketplace", insert_after="cb_shipstation", translatable=0),
 		dict(fieldtype="Data", fieldname="marketplace_order_id", read_only=1,
 			label="Marketplace Order ID", insert_after="marketplace",
 			translatable=0),
 		dict(fieldtype="Check", fieldname="has_pii",
-			hidden=1, label="Has PII", insert_after="marketplace_order_id")
+			hidden=1, label="Has PII", insert_after="marketplace_order_id"),
+		dict(fieldtype="Section Break", fieldname="sb_notes", collapsible=1,
+			label="Notes", insert_after="has_pii"),
+		dict(fieldtype="Long Text", fieldname="shipstation_customer_notes", read_only=1,
+			label="Shipstation Customer Notes", insert_after="sb_notes",
+			translatable=0),
+		dict(fieldtype="Column Break", fieldname="cb_notes",
+			insert_after="shipstation_customer_notes"),
+		dict(fieldtype="Long Text", fieldname="shipstation_internal_notes", read_only=1,
+			label="Shipstation Internal Notes", insert_after="cb_notes", translatable=0),
 	]
 
 	sales_order_fields = [
@@ -136,4 +142,5 @@ def setup_custom_fields(args=None):
 		"Delivery Note": delivery_note_fields
 	}
 
+	print("Creating custom fields for Shipstation")
 	create_custom_fields(custom_fields)

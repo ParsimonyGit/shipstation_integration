@@ -46,9 +46,11 @@ class ShipstationSettings(Document):
 		self.update_carriers_and_stores()
 		self.update_warehouses()
 
+	@frappe.whitelist()
 	def get_orders(self):
 		list_orders(self)
 
+	@frappe.whitelist()
 	def get_shipments(self):
 		list_shipments(self)
 
@@ -69,6 +71,7 @@ class ShipstationSettings(Document):
 			if store.enable_shipments and not store.enable_orders:
 				store.enable_shipments = False
 
+	@frappe.whitelist()
 	def update_carriers_and_stores(self):
 		unstructured_carriers = []
 		carriers = self.client().list_carriers()
@@ -153,6 +156,7 @@ class ShipstationSettings(Document):
 				})
 		return self
 
+	@frappe.whitelist()
 	def get_items(self):
 		products = self.client().list_products()
 		if not products.results:

@@ -119,7 +119,11 @@ def create_customer(order: "ShipStationOrder"):
     cust.territory = "United States"
     cust.save()
     frappe.db.commit()
-    cust.customer_primary_contact = create_contact(order, customer_name).name
+
+    customer_primary_contact = create_contact(order, customer_name)
+    if customer_primary_contact:
+        cust.customer_primary_contact = customer_primary_contact.name
+
     if order.ship_to.street1:
         create_address(
             order.ship_to, customer_name, order.customer_email, "Shipping"

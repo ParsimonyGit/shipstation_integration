@@ -65,10 +65,10 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="shipstation_warehouse_id",
-			read_only=1,
+			read_only=True,
 			label="Shipstation Warehouse ID",
 			insert_after="parent_warehouse",
-			translatable=0,
+			translatable=False,
 		)
 	]
 
@@ -76,19 +76,19 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="shipstation_store_name",
-			read_only=1,
+			read_only=True,
 			label="Shipstation Store",
 			insert_after="sb_shipstation",
-			translatable=0,
+			translatable=False,
 		),
 		dict(
 			fieldtype="Data",
 			fieldname="shipstation_order_id",
-			read_only=1,
+			read_only=True,
 			label="Shipstation Order ID",
 			insert_after="shipstation_store_name",
-			in_standard_filter=1,
-			translatable=0,
+			in_standard_filter=True,
+			translatable=False,
 		),
 		dict(
 			fieldtype="Column Break",
@@ -98,30 +98,31 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="marketplace",
-			read_only=1,
+			read_only=True,
 			label="Marketplace",
 			insert_after="cb_shipstation",
-			translatable=0,
+			translatable=False,
 		),
 		dict(
 			fieldtype="Data",
 			fieldname="marketplace_order_id",
-			read_only=1,
+			read_only=True,
 			label="Marketplace Order ID",
 			insert_after="marketplace",
-			translatable=0,
+			translatable=False,
 		),
 		dict(
 			fieldtype="Check",
 			fieldname="has_pii",
-			hidden=1,
+			hidden=True,
 			label="Has PII",
 			insert_after="marketplace_order_id",
 		),
 		dict(
 			fieldtype="Section Break",
 			fieldname="sb_notes",
-			collapsible=1,
+			collapsible=True,
+			collapsible_depends_on="eval:doc.shipstation_customer_notes || doc.shipstation_internal_notes",
 			label="Notes",
 			insert_after="has_pii",
 			depends_on="eval:doc.shipstation_customer_notes || doc.shipstation_internal_notes",
@@ -129,10 +130,10 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Long Text",
 			fieldname="shipstation_customer_notes",
-			read_only=1,
+			read_only=True,
 			label="Shipstation Customer Notes",
 			insert_after="sb_notes",
-			translatable=0,
+			translatable=False,
 		),
 		dict(
 			fieldtype="Column Break",
@@ -142,10 +143,10 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Long Text",
 			fieldname="shipstation_internal_notes",
-			read_only=1,
+			read_only=True,
 			label="Shipstation Internal Notes",
 			insert_after="cb_notes",
-			translatable=0,
+			translatable=False,
 		),
 	]
 
@@ -153,7 +154,7 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Section Break",
 			fieldname="sb_shipstation",
-			collapsible=1,
+			collapsible=True,
 			label="Shipstation",
 			insert_after="tax_id",
 		),
@@ -164,7 +165,7 @@ def setup_custom_fields(args=None):
 			dict(
 				fieldtype="Section Break",
 				fieldname="sb_shipstation",
-				collapsible=1,
+				collapsible=True,
 				label="Shipstation",
 				insert_after="amended_from",
 			),
@@ -174,10 +175,10 @@ def setup_custom_fields(args=None):
 			dict(
 				fieldtype="Data",
 				fieldname="shipstation_shipment_id",
-				read_only=1,
+				read_only=True,
 				label="Shipstation Shipment ID",
 				insert_after="shipstation_order_id",
-				translatable=0,
+				translatable=False,
 			)
 		]
 	)
@@ -187,7 +188,7 @@ def setup_custom_fields(args=None):
 			dict(
 				fieldtype="Section Break",
 				fieldname="sb_shipstation",
-				collapsible=1,
+				collapsible=True,
 				label="Shipstation",
 				insert_after="return_against",
 			),
@@ -197,33 +198,33 @@ def setup_custom_fields(args=None):
 			dict(
 				fieldtype="Data",
 				fieldname="shipstation_shipment_id",
-				read_only=1,
+				read_only=True,
 				label="Shipstation Shipment ID",
 				insert_after="shipstation_order_id",
-				translatable=0,
+				translatable=False,
 			),
 			dict(
 				fieldtype="Section Break",
 				fieldname="sb_shipment",
-				collapsible=1,
+				collapsible=True,
 				label="Shipment Details",
 				insert_after="has_pii",
 			),
 			dict(
 				fieldtype="Data",
 				fieldname="carrier",
-				read_only=1,
+				read_only=True,
 				label="Carrier",
 				insert_after="sb_shipment",
-				translatable=0,
+				translatable=False,
 			),
 			dict(
 				fieldtype="Data",
 				fieldname="tracking_number",
-				read_only=1,
+				read_only=True,
 				label="Tracking Number",
 				insert_after="carrier",
-				translatable=0,
+				translatable=False,
 			),
 			dict(
 				fieldtype="Column Break",
@@ -233,10 +234,10 @@ def setup_custom_fields(args=None):
 			dict(
 				fieldtype="Data",
 				fieldname="carrier_service",
-				read_only=1,
+				read_only=True,
 				label="Carrier Service",
 				insert_after="cb_shipment",
-				translatable=0,
+				translatable=False,
 			),
 		]
 	)
@@ -245,17 +246,17 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Section Break",
 			fieldname="sb_shipstation",
-			collapsible=1,
+			collapsible=True,
 			label="Shipstation",
 			insert_after="weight_uom",
 		),
 		dict(
 			fieldtype="Long Text",
 			fieldname="shipstation_item_notes",
-			read_only=1,
+			read_only=True,
 			label="Shipstation Item Notes",
 			insert_after="sb_shipstation",
-			translatable=0,
+			translatable=False,
 		),
 	]
 

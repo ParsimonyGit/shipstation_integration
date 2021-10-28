@@ -150,6 +150,32 @@ def setup_custom_fields(args=None):
 		),
 	]
 
+	common_custom_sales_item_fields = [
+		dict(
+			fieldtype="Section Break",
+			fieldname="sb_shipstation",
+			collapsible=True,
+			label="Shipstation",
+			insert_after="weight_uom",
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="shipstation_order_item_id",
+			read_only=True,
+			label="Shipstation Order Item ID",
+			insert_after="sb_shipstation",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Long Text",
+			fieldname="shipstation_item_notes",
+			read_only=True,
+			label="Shipstation Item Notes",
+			insert_after="shipstation_order_item_id",
+			translatable=False,
+		),
+	]
+
 	sales_order_fields = [
 		dict(
 			fieldtype="Section Break",
@@ -242,30 +268,14 @@ def setup_custom_fields(args=None):
 		]
 	)
 
-	sales_order_item_fields = [
-		dict(
-			fieldtype="Section Break",
-			fieldname="sb_shipstation",
-			collapsible=True,
-			label="Shipstation",
-			insert_after="weight_uom",
-		),
-		dict(
-			fieldtype="Long Text",
-			fieldname="shipstation_item_notes",
-			read_only=True,
-			label="Shipstation Item Notes",
-			insert_after="sb_shipstation",
-			translatable=False,
-		),
-	]
-
 	custom_fields = {
 		"Warehouse": warehouse_fields,
 		"Sales Order": sales_order_fields,
-		"Sales Order Item": sales_order_item_fields,
+		"Sales Order Item": common_custom_sales_item_fields,
 		"Sales Invoice": sales_invoice_fields,
+		"Sales Invoice Item": common_custom_sales_item_fields,
 		"Delivery Note": delivery_note_fields,
+		"Delivery Note Item": common_custom_sales_item_fields,
 	}
 
 	print("Creating custom fields for Shipstation")

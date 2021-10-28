@@ -208,6 +208,7 @@ def create_erpnext_order(
 				"conversion_factor": 1,
 				"rate": rate,
 				"warehouse": store.warehouse,
+				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes
 			},
 		)

@@ -130,7 +130,7 @@ class ShipstationSettings(Document):
 			if store_exists:
 				continue
 
-			if store.marketplace_name == "Amazon":
+			if "Amazon" in store.marketplace_name:
 				self.append("shipstation_stores", {
 					"is_amazon_store": 1,
 					"amazon_marketplace": store.account_name,
@@ -139,7 +139,7 @@ class ShipstationSettings(Document):
 					"marketplace_name": get_marketplace(id=store.account_name).sales_partner,
 					"store_name": store.store_name
 				})
-			elif store.marketplace_name == "Shopify":
+			elif "Shopify" in store.marketplace_name:
 				self.append("shipstation_stores", {
 					"is_shopify_store": 1,
 					"enable_orders": 1,

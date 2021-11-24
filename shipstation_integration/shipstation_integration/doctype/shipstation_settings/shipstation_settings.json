@@ -17,8 +17,11 @@
   "update_carriers_and_stores",
   "sb_filters",
   "since_date",
-  "sb_stores",
+  "sb_warehouses",
   "shipstation_warehouses",
+  "fetch_warehouses",
+  "reset_warehouses",
+  "sb_stores",
   "shipstation_stores",
   "sb_carriers",
   "carrier_data",
@@ -89,7 +92,7 @@
    "fieldtype": "HTML"
   },
   {
-   "description": "Only orders from the warehouses selected in this field will be synced.",
+   "description": "Only orders from the above Shipstation warehouses will be synced. If no warehouses are set, the system will default to fetching from all Shipstation warehouses.",
    "fieldname": "shipstation_warehouses",
    "fieldtype": "Table MultiSelect",
    "label": "Shipstation Warehouses",
@@ -135,10 +138,26 @@
    "fieldname": "enable_label_generation",
    "fieldtype": "Check",
    "label": "Enable Label Generation"
+  },
+  {
+   "fieldname": "sb_warehouses",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "fetch_warehouses",
+   "fieldtype": "Button",
+   "label": "Fetch All"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "reset_warehouses",
+   "fieldtype": "Button",
+   "label": "Reset"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2021-06-04 07:34:34.161535",
+ "modified": "2021-11-24 05:30:10.617590",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

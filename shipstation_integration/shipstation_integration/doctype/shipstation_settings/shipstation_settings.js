@@ -71,6 +71,19 @@ frappe.ui.form.on("Shipstation Settings", {
 		})
 	},
 
+	fetch_warehouses: frm => {
+		frm.call({
+			doc: frm.doc,
+			method: "update_warehouses",
+			freeze: true
+		})
+	},
+
+	reset_warehouses: frm => {
+		frm.set_value("shipstation_warehouses", []);
+		frm.save();
+	},
+
 	toggle_mandatory_table_fields: frm => {
 		frm.fields_dict.shipstation_stores.grid.toggle_reqd("company", !frm.is_new());
 		frm.fields_dict.shipstation_stores.grid.toggle_reqd("warehouse", !frm.is_new());

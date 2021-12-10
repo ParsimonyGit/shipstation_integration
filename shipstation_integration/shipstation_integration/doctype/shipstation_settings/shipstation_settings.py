@@ -88,7 +88,9 @@ class ShipstationSettings(Document):
 		self.save()
 		return self
 
+	@frappe.whitelist()
 	def update_warehouses(self):
+		self.shipstation_warehouses = []
 		root_warehouse = get_root_of("Warehouse")
 		if not frappe.db.exists("Warehouse", {"warehouse_name": "Shipstation Warehouses"}):
 			ss_warehouse_doc = frappe.new_doc("Warehouse")

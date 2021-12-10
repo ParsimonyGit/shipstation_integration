@@ -95,7 +95,9 @@ def list_orders(
 
 					process_order_hook = frappe.get_hooks("process_shipstation_order")
 					if process_order_hook:
-						should_create_order = frappe.get_attr(process_order_hook[0])(order, store)
+						should_create_order = frappe.get_attr(process_order_hook[0])(
+							order, store
+						)
 
 					if should_create_order:
 						create_erpnext_order(order, store)
@@ -115,8 +117,12 @@ def validate_order(
 	):
 		return False
 
-	# only create orders for warehouses defined in Shipstation Settings
-	if order.advanced_options.warehouse_id not in settings.active_warehouse_ids:
+	# only create orders for warehouses defined in Shipstation Settings;
+	# if no warehouses are set, fetch everything
+	if (
+		settings.active_warehouse_ids
+		and order.advanced_options.warehouse_id not in settings.active_warehouse_ids
+	):
 		return False
 
 	# if a date filter is set in Shipstation Settings, don't create orders before that date
@@ -209,7 +215,7 @@ def create_erpnext_order(
 				"rate": rate,
 				"warehouse": store.warehouse,
 				"shipstation_order_item_id": item.order_item_id,
-				"shipstation_item_notes": item_notes
+				"shipstation_item_notes": item_notes,
 			},
 		)
 

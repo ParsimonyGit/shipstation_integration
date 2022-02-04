@@ -6,6 +6,7 @@ import frappe
 from frappe.utils import flt
 
 if TYPE_CHECKING:
+	from erpnext.stock.doctype.item.item import Item
 	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
 		ShipstationStore,
 	)
@@ -43,7 +44,7 @@ def create_item(
 		)
 
 	if item_code:
-		item = frappe.get_doc("Item", item_code)
+		item: "Item" = frappe.get_doc("Item", item_code)
 	else:
 		weight_per_unit, weight_uom = 1.0, "Ounce"
 		if isinstance(product, ShipStationItem):
@@ -57,7 +58,7 @@ def create_item(
 					# map Shipstation UOM to ERPNext UOM
 					weight_uom = "Ounce"
 
-		item = frappe.new_doc("Item")
+		item: "Item" = frappe.new_doc("Item")
 		item.update(
 			{
 				"item_code": product.sku or item_name,
@@ -88,6 +89,10 @@ def create_item(
 				}
 			],
 		)
+
+	before_save_hook = frappe.get_hooks("update_shipstation_item_before_save")
+	if before_save_hook:
+		item = frappe.get_attr(before_save_hook[0])(store, item)
 
 	item.save()
 	return item.item_code

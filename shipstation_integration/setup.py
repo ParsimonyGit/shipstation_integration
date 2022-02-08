@@ -61,6 +61,22 @@ def create_price_list(args=None):
 
 
 def setup_custom_fields(args=None):
+	item_fields = [
+		# Integration section
+		dict(fieldname="sb_integration", label="Integration Details",
+			fieldtype="Section Break", insert_after="description", collapsible=1),
+		dict(fieldname="integration_doctype", label="Integration DocType",
+			fieldtype="Link", options="DocType", insert_after="sb_integration",
+			hidden=1, print_hide=1),
+		dict(fieldname="integration_doc", label="Integration Doc", fieldtype="Dynamic Link",
+			insert_after="integration_doctype", options="integration_doctype", read_only=1,
+			print_hide=1),
+		dict(fieldname="cb_integration", fieldtype="Column Break",
+			insert_after="integration_doc"),
+		dict(fieldname="store", label="Store", fieldtype="Data",
+			insert_after="cb_integration", read_only=1, print_hide=1, translatable=0),
+	]
+
 	warehouse_fields = [
 		dict(
 			fieldtype="Data",
@@ -269,6 +285,7 @@ def setup_custom_fields(args=None):
 	)
 
 	custom_fields = {
+		"Item": item_fields,
 		"Warehouse": warehouse_fields,
 		"Sales Order": sales_order_fields,
 		"Sales Order Item": common_custom_sales_item_fields,

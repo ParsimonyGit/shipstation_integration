@@ -82,7 +82,7 @@ def _update_address(
     addr.address_line3 = address.street3
     addr.city = address.city
     addr.state = address.state
-    addr.pin_code = address.postal_code
+    addr.pincode = address.postal_code
     addr.country = frappe.get_cached_value("Country", {"code": address.country}, "name")
     addr.phone = address.phone
     addr.email = email

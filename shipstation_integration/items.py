@@ -74,21 +74,28 @@ def create_item(
 		)
 
 	# create item defaults, if missing
-	if store and store.company and not item.get("item_defaults"):
-		item.set(
-			"item_defaults",
-			[
-				{
-					"company": store.company,
-					"default_price_list": "ShipStation",
-					"default_warehouse": "",  # leave unset
-					"buying_cost_center": store.cost_center,
-					"selling_cost_center": store.cost_center,
-					"expense_account": store.expense_account,
-					"income_account": store.sales_account,
-				}
-			],
-		)
+	if store:
+		item.update({
+			"integration_doctype": "Shipstation Settings",
+			"integration_doc": store.parent,
+			"store": store.name,
+		})
+
+		if store.company and not item.get("item_defaults"):
+			item.set(
+				"item_defaults",
+				[
+					{
+						"company": store.company,
+						"default_price_list": "ShipStation",
+						"default_warehouse": "",  # leave unset
+						"buying_cost_center": store.cost_center,
+						"selling_cost_center": store.cost_center,
+						"expense_account": store.expense_account,
+						"income_account": store.sales_account,
+					}
+				],
+			)
 
 	before_save_hook = frappe.get_hooks("update_shipstation_item_before_save")
 	if before_save_hook:

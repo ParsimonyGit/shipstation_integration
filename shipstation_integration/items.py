@@ -78,7 +78,8 @@ def create_item(
 		# override disabled status to be able to add the item to the order
 		item.disabled = False
 		item.add_comment(
-			text="[System] Item re-enabled after new order was fetched from Shipstation"
+			comment_type="Edit",
+			text="re-enabled this item after a new order was fetched from Shipstation"
 		)
 
 	# create item defaults, if missing

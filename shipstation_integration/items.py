@@ -39,9 +39,7 @@ def create_item(
 		item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
 	else:
 		item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
-		item_name = (
-			frappe.db.get_value("Item", item_code, "item_name") or item_name
-		)
+		item_name = frappe.db.get_value("Item", item_code, "item_name") or item_name
 
 	if item_code:
 		item: "Item" = frappe.get_doc("Item", item_code)
@@ -53,7 +51,10 @@ def create_item(
 			weight = product.weight if hasattr(product, "weight") else frappe._dict()
 			if weight:
 				weight_per_unit = flt(weight.value) if weight else 1
-				weight_uom = weight.units.title() if weight and weight.units else "Ounce"
+				weight_uom = (
+					weight.units.title() if weight and weight.units else "Ounce"
+				)
+
 				if weight_uom == "Ounces":
 					# map Shipstation UOM to ERPNext UOM
 					weight_uom = "Ounce"
@@ -71,6 +72,14 @@ def create_item(
 				"weight_uom": weight_uom,
 				"end_of_life": "",
 			}
+		)
+
+	if item.disabled:
+		# override disabled status to be able to add the item to the order
+		item.disabled = False
+		item.add_comment(
+			comment_type="Edit",
+			text="re-enabled this item after a new order was fetched from Shipstation"
 		)
 
 	# create item defaults, if missing

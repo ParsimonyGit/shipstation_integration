@@ -70,8 +70,8 @@ def list_orders(
 
 			parameters = {
 				"store_id": store.store_id,
-				"create_date_start": last_order_datetime,
-				"create_date_end": datetime.datetime.utcnow(),
+				"modify_date_start": last_order_datetime,
+				"modify_date_end": datetime.datetime.utcnow(),
 			}
 
 			update_parameter_hook = frappe.get_hooks(

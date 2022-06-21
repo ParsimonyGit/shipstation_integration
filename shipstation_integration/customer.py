@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 import frappe
+from frappe.utils import parse_addr
 
 if TYPE_CHECKING:
     from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
@@ -12,8 +13,11 @@ if TYPE_CHECKING:
 def update_customer_details(existing_so: str, order: "ShipStationOrder"):
     existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
-    contact = create_contact(order, existing_so_doc.amazon_customer)
-    existing_so_doc.contact_person = contact.name
+    email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
+    if email_id:
+        contact = create_contact(order, email_id)
+        existing_so_doc.contact_person = contact.name
+
     existing_so_doc.shipstation_order_id = order.order_id
     existing_so_doc.has_pii = True
 
@@ -23,14 +27,14 @@ def update_customer_details(existing_so: str, order: "ShipStationOrder"):
                 order.bill_to,
                 existing_so_doc.customer_address,
                 order.customer_email,
-                "Billing"
+                "Billing",
             )
         else:
             bill_address = create_address(
                 order.bill_to,
                 existing_so_doc.amazon_customer,
                 order.customer_email,
-                "Billing"
+                "Billing",
             )
             existing_so_doc.customer_address = bill_address.name
     if order.ship_to and order.ship_to.street1:
@@ -39,14 +43,14 @@ def update_customer_details(existing_so: str, order: "ShipStationOrder"):
                 order.ship_to,
                 existing_so_doc.shipping_address_name,
                 order.customer_email,
-                "Shipping"
+                "Shipping",
             )
         else:
             ship_address = create_address(
                 order.ship_to,
                 existing_so_doc.amazon_customer,
                 order.customer_email,
-                "Shipping"
+                "Shipping",
             )
             existing_so_doc.shipping_address_name = ship_address.name
 
@@ -120,9 +124,11 @@ def create_customer(order: "ShipStationOrder"):
     cust.save()
     frappe.db.commit()
 
-    customer_primary_contact = create_contact(order, customer_name)
-    if customer_primary_contact:
-        cust.customer_primary_contact = customer_primary_contact.name
+    email_id, user_name = parse_addr(customer_name)
+    if email_id:
+        customer_primary_contact = create_contact(order, email_id)
+        if customer_primary_contact:
+            cust.customer_primary_contact = customer_primary_contact.name
 
     if order.ship_to.street1:
         create_address(
@@ -168,6 +174,6 @@ def get_billing_address(customer_name: str):
             LIMIT 1
         """,
         {"customer_name": customer_name},
-        as_dict=True
+        as_dict=True,
     )
     return billing_address[0].get("name") if billing_address else None

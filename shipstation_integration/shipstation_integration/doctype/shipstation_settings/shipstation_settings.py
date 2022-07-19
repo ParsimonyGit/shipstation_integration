@@ -187,3 +187,9 @@ class ShipstationSettings(Document):
 					if pack['name'] == package:
 						_package = pack['code']
 		return _carrier, _service, _package
+
+
+	@frappe.whitelist()
+	def update_order_item_custom_fields(self):
+		order_item_custom_fields = self
+		frappe.publish_realtime(event='eval_js', message='console.log("{0}")'.format(order_item_custom_fields), user=frappe.session.user)

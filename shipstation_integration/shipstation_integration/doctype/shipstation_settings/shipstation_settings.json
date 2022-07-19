@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "autoname": "Prompt",
  "creation": "2019-12-10 11:54:44.442858",
  "doctype": "DocType",
@@ -23,6 +24,11 @@
   "reset_warehouses",
   "sb_stores",
   "shipstation_stores",
+  "sb_itemmeta",
+  "order_item_custom_fields",
+  "update_order_item_custom_fields",
+  "column_break_20",
+  "options_import",
   "sb_carriers",
   "carrier_data",
   "carriers_html"
@@ -154,10 +160,37 @@
    "fieldname": "reset_warehouses",
    "fieldtype": "Button",
    "label": "Reset"
+  },
+  {
+   "fieldname": "sb_itemmeta",
+   "fieldtype": "Section Break",
+   "label": "Metadata Import"
+  },
+  {
+   "fieldname": "column_break_20",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_item_custom_fields",
+   "fieldtype": "Table",
+   "label": "Sales Order Item Custom Fields",
+   "options": "Shipstation Item Custom Fields"
+  },
+  {
+   "fieldname": "update_order_item_custom_fields",
+   "fieldtype": "Button",
+   "label": "Create/Update Custom Fields"
+  },
+  {
+   "fieldname": "options_import",
+   "fieldtype": "Table",
+   "label": "Shipstation Options Import",
+   "options": "Shipstation Options Import"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2021-11-24 05:30:10.617590",
+ "links": [],
+ "modified": "2022-07-06 13:38:50.958416",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

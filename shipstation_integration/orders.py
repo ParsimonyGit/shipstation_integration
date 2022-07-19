@@ -205,9 +205,7 @@ def create_erpnext_order(
 		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)
 		rate = item.unit_price if hasattr(item, "unit_price") else None
-		so.append(
-			"items",
-			{
+		item_dict = {
 				"item_code": item_code,
 				"qty": item.quantity,
 				"uom": frappe.db.get_single_value("Stock Settings", "stock_uom"),
@@ -216,8 +214,18 @@ def create_erpnext_order(
 				"warehouse": store.warehouse,
 				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes,
-			},
-		)
+			}
+		options_import = frappe.get_all("Shipstation Options Import", 
+			filters = dict(parent=store.parent),
+			fields = ["shipstation_option_name", "sales_order_item_field"])
+		if options_import:
+			for option_import in options_import:
+				for option in item.options:
+					if option.name == option_import.shipstation_option_name:
+						frappe.publish_realtime(event='eval_js', message='console.log("{0}")'.format(option.value), user=frappe.session.user)
+						item_dict[option_import.sales_order_item_field] = option.value
+
+		so.append("items", item_dict)
 
 	if not so.get("items"):
 		return

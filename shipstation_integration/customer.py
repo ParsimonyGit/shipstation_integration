@@ -152,6 +152,8 @@ def create_contact(order: "ShipStationOrder", customer_name: str):
         return frappe._dict({"name": contact})
     cont: "Contact" = frappe.new_doc("Contact")
     cont.first_name = order.bill_to.name or "Not Provided"
+    for char in "<>":
+        cont.first_name = cont.first_name.replace(char, "")
     if customer_name:
         cont.append("email_ids", {"email_id": customer_name})
         cont.append("links", {"link_doctype": "Customer", "link_name": customer_name})

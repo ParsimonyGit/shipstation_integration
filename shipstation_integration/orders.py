@@ -222,7 +222,6 @@ def create_erpnext_order(
 			for option_import in options_import:
 				for option in item.options:
 					if option.name == option_import.shipstation_option_name:
-						frappe.publish_realtime(event='eval_js', message='console.log("{0}")'.format(option.value), user=frappe.session.user)
 						item_dict[option_import.sales_order_item_field] = option.value
 
 		so.append("items", item_dict)

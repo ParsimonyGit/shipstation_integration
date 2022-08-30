@@ -60,7 +60,7 @@ def list_orders(
 		if not last_order_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(
-				hours=24
+				hours=72
 			)
 
 		store: "ShipstationStore"

@@ -284,6 +284,38 @@ def setup_custom_fields(args=None):
 		]
 	)
 
+	shipment_fields = [
+		dict(
+			fieldtype="Data",
+			fieldname="shipstation_store_name",
+			label="Shipstation Store",
+			insert_after="shipment_amount",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="shipstation_order_id",
+			label="Shipstation Order ID",
+			insert_after="shipstation_store_name",
+			in_standard_filter=True,
+			translatable=False,
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="marketplace",
+			label="Marketplace",
+			insert_after="awb_number",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="marketplace_order_id",
+			label="Marketplace Order ID",
+			insert_after="marketplace",
+			translatable=False,
+		)
+	]
+
 	custom_fields = {
 		"Item": item_fields,
 		"Warehouse": warehouse_fields,
@@ -293,6 +325,7 @@ def setup_custom_fields(args=None):
 		"Sales Invoice Item": common_custom_sales_item_fields,
 		"Delivery Note": delivery_note_fields,
 		"Delivery Note Item": common_custom_sales_item_fields,
+		"Shipment": shipment_fields,
 	}
 
 	print("Creating custom fields for Shipstation")

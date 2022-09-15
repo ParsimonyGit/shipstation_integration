@@ -7,6 +7,7 @@ import frappe
 from frappe.utils import getdate
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_delivery_note
 from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
+from erpnext.stock.doctype.delivery_note.delivery_note import make_shipment
 
 if TYPE_CHECKING:
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
@@ -106,6 +107,7 @@ def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationSto
 		return
 
 	delivery_note = create_delivery_note(shipment, sales_invoice)
+	shipment = create_shipment(shipment, delivery_note, store)
 	return delivery_note.name
 
 
@@ -146,10 +148,6 @@ def create_sales_invoice(shipment, store):
 
 def create_delivery_note(shipment, sales_invoice):
 	dn: "DeliveryNote" = make_delivery_note(sales_invoice.name)
-	dn.shipstation_shipment_id = shipment.shipment_id
-	dn.carrier = shipment.carrier_code.upper()
-	dn.carrier_service = shipment.service_code.upper()
-	dn.tracking_number = shipment.tracking_number
 
 	for row in dn.items:
 		row.allow_zero_valuation_rate = 1  # if row.rate < 0.001 else 0
@@ -158,3 +156,35 @@ def create_delivery_note(shipment, sales_invoice):
 	dn.submit()
 	frappe.db.commit()
 	return dn
+
+def create_shipment(shipment, delivery_note, store):
+	shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+	shipment_doc.description_of_content = "Farm plastic"
+	shipment_doc.value_of_goods = delivery_note.total
+	shipment_doc.shipment_id = shipment.shipment_id
+	shipment_doc.pickup_date = shipment.create_date
+	shipment_doc.carrier = shipment.carrier_code.upper()
+	shipment_doc.carrier_service = shipment.service_code.upper()
+	shipment_doc.awb_number = shipment.tracking_number
+	shipment_doc.pallets = "No"
+	shipment_doc.service_provider = "Shipstation"
+	shipment_doc.incoterm = "DAP (Delivered At Place)"
+	shipment_doc.shipstation_store_name = store.store_name
+	shipment_doc.shipstation_order_id = shipment.order_id
+	shipment_doc.marketpalce = store.marketplace_name
+	shipment_doc.marketplace_order_id = shipment.order_number
+	shipment_doc.flags.ignore_mandatory = True
+	shipment_doc.flags.ignore_validate = True
+	shipment_doc.append("shipment_parcel", {
+		"length": shipment.dimensions.length,
+		"width": shipment.dimensions.width,
+		"height": shipment.dimensions.height,
+		"weight": shipment.weight.value
+	})
+	shipment_doc.run_method("set_missing_values")
+
+	shipment_doc.save()
+	shipment_doc.submit()
+	frappe.db.commit()
+
+	return shipment

@@ -252,6 +252,7 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="shipstation_store_name",
+			read_only=True,
 			label="Shipstation Store",
 			insert_after="shipment_amount",
 			translatable=False,
@@ -259,6 +260,7 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="shipstation_order_id",
+			read_only=True,
 			label="Shipstation Order ID",
 			insert_after="shipstation_store_name",
 			in_standard_filter=True,
@@ -267,6 +269,7 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="marketplace",
+			read_only=True,
 			label="Marketplace",
 			insert_after="awb_number",
 			translatable=False,
@@ -274,6 +277,7 @@ def setup_custom_fields(args=None):
 		dict(
 			fieldtype="Data",
 			fieldname="marketplace_order_id",
+			read_only=True,
 			label="Marketplace Order ID",
 			insert_after="marketplace",
 			translatable=False,

@@ -2,7 +2,6 @@ import frappe
 
 def execute():
 	delivery_note_custom_fields = [
-		'Delivery Note-shipment_id',
 		'Delivery Note-shipment_details',
 		'Delivery Note-sb_shipment',
 		'Delivery Note-carrier',

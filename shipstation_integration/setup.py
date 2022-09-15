@@ -244,43 +244,7 @@ def setup_custom_fields(args=None):
 				label="Shipstation Shipment ID",
 				insert_after="shipstation_order_id",
 				translatable=False,
-			),
-			dict(
-				fieldtype="Section Break",
-				fieldname="sb_shipment",
-				collapsible=True,
-				label="Shipment Details",
-				insert_after="has_pii",
-			),
-			dict(
-				fieldtype="Data",
-				fieldname="carrier",
-				read_only=True,
-				label="Carrier",
-				insert_after="sb_shipment",
-				translatable=False,
-			),
-			dict(
-				fieldtype="Data",
-				fieldname="tracking_number",
-				read_only=True,
-				label="Tracking Number",
-				insert_after="carrier",
-				translatable=False,
-			),
-			dict(
-				fieldtype="Column Break",
-				fieldname="cb_shipment",
-				insert_after="tracking_number",
-			),
-			dict(
-				fieldtype="Data",
-				fieldname="carrier_service",
-				read_only=True,
-				label="Carrier Service",
-				insert_after="cb_shipment",
-				translatable=False,
-			),
+			)
 		]
 	)
 

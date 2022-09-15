@@ -165,7 +165,6 @@ def create_shipment(shipment, delivery_note, store):
 	shipment_doc.update({
 		# todo: change description of content to shipment items.
 		"description_of_content" : "Farm plastic",
-		"value_of_goods" : delivery_note.total,
 		"shipment_id" : shipment.shipment_id,
 		"pickup_date" : shipment.create_date,
 		"carrier" : shipment.carrier_code,
@@ -179,7 +178,7 @@ def create_shipment(shipment, delivery_note, store):
 		"marketplace_order_id" : shipment.order_number,
 	})
 
-	if shipment.dimension:
+	if shipment.dimensions:
 		shipment_doc.append("shipment_parcel", {
 			"length": shipment.dimensions.length,
 			"width": shipment.dimensions.width,

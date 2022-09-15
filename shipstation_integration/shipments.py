@@ -73,8 +73,6 @@ def list_shipments(
 			shipment: Optional["ShipStationOrder"]
 			for shipment in shipments:
 				# sometimes Shipstation will return `None` in the response
-				print(type(shipment.dimensions))
-				print(shipment.dimensions)
 				if not shipment:
 					continue
 
@@ -183,11 +181,11 @@ def create_shipment(shipment, delivery_note, store):
 
 	if shipment.dimension:
 		shipment_doc.append("shipment_parcel", {
-		"length": shipment.dimensions.length,
-		"width": shipment.dimensions.width,
-		"height": shipment.dimensions.height,
-		"weight": shipment.weight.value or 0.01
-	})
+			"length": shipment.dimensions.length,
+			"width": shipment.dimensions.width,
+			"height": shipment.dimensions.height,
+			"weight": shipment.weight.value or 0.01
+		})
 
 	shipment_doc.flags.ignore_mandatory = True
 	shipment_doc.run_method("set_missing_values")

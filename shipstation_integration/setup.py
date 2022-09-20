@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 
 def get_setup_stages(args=None):
@@ -284,33 +285,6 @@ def setup_custom_fields(args=None):
 		)
 	]
 
-	shipment_parcel_fields = [
-		dict(
-			fieldtype="Int",
-			fieldname="length",
-			label="Length (Inch)",
-			translatable=False,
-		),
-		dict(
-			fieldtype="Int",
-			fieldname="width",
-			label="Width (Inch)",
-			translatable=False,
-		),
-		dict(
-			fieldtype="Int",
-			fieldname="height",
-			label="Height (Inch)",
-			translatable=False,
-		),
-		dict(
-			fieldtype="Float",
-			fieldname="weight",
-			label="Weight (Ounce)",
-			translatable=False,
-		)
-	]
-
 	custom_fields = {
 		"Item": item_fields,
 		"Warehouse": warehouse_fields,
@@ -321,8 +295,52 @@ def setup_custom_fields(args=None):
 		"Delivery Note": delivery_note_fields,
 		"Delivery Note Item": common_custom_sales_item_fields,
 		"Shipment": shipment_fields,
-		# "Shipment Parcel": shipment_parcel_fields
 	}
 
 	print("Creating custom fields for Shipstation")
 	create_custom_fields(custom_fields)
+
+	property_setters = [
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="length",
+			property="label",
+			property_type="Text",
+			value="Length (Inch)",
+		),
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="width",
+			property="label",
+			property_type="Text",
+			value="Width (Inch)",
+		),
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="height",
+			property="label",
+			property_type="Text",
+			value="Height (Inch)",
+		),
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="weight",
+			property="label",
+			property_type="Text",
+			value="Weight (Ounce)",
+		)
+	]
+
+	print("Creating property setters for Shipstation")
+	for property_setter in property_setters:
+		if not frappe.db.exists(
+			"Property Setter",
+			dict(
+				doc_type=property_setter.get("doctype"),
+				field_name=property_setter.get("fieldname"),
+				property=property_setter.get("property"),
+				property_type=property_setter.get("property_type"),
+				value=property_setter.get("value"),
+			),
+		):
+			make_property_setter(**property_setter)

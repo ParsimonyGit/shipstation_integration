@@ -284,6 +284,33 @@ def setup_custom_fields(args=None):
 		)
 	]
 
+	shipment_parcel_fields = [
+		dict(
+			fieldtype="Int",
+			fieldname="length",
+			label="Length (Inch)",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Int",
+			fieldname="width",
+			label="Width (Inch)",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Int",
+			fieldname="height",
+			label="Height (Inch)",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Float",
+			fieldname="weight",
+			label="Weight (Ounce)",
+			translatable=False,
+		)
+	]
+
 	custom_fields = {
 		"Item": item_fields,
 		"Warehouse": warehouse_fields,
@@ -294,6 +321,7 @@ def setup_custom_fields(args=None):
 		"Delivery Note": delivery_note_fields,
 		"Delivery Note Item": common_custom_sales_item_fields,
 		"Shipment": shipment_fields,
+		# "Shipment Parcel": shipment_parcel_fields
 	}
 
 	print("Creating custom fields for Shipstation")

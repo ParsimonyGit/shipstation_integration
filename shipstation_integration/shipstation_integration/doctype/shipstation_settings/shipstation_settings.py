@@ -188,8 +188,22 @@ class ShipstationSettings(Document):
 						_package = pack['code']
 		return _carrier, _service, _package
 
-
+	# create custom fields on the Sales Order Item doctype from the order_item_custom_fields table for storing Shipstation metadata
 	@frappe.whitelist()
 	def update_order_item_custom_fields(self):
-		order_item_custom_fields = self
-		frappe.publish_realtime(event='eval_js', message='console.log("{0}")'.format(order_item_custom_fields), user=frappe.session.user)
+		order_item_custom_fields = self.order_item_custom_fields
+		insert_after = "Shipstation Item Notes"
+		for field in order_item_custom_fields:
+			if not frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": field.fieldname}):
+				custom_field = frappe.new_doc("Custom Field")
+				custom_field.update({
+					"dt": "Sales Order Item",
+					"fieldname": field.fieldname,
+					"label": field.label,
+					"fieldtype": field.fieldtype,
+					"options": field.options,
+					"insert_after": insert_after
+				})
+				custom_field.insert()
+			if frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": field.fieldname}):
+				insert_after = field.label

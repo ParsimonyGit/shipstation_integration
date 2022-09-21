@@ -298,4 +298,3 @@ def setup_custom_fields(args=None):
 	print("Creating custom fields for Shipstation")
 	create_custom_fields(custom_fields)
 
-# def update_item_custom_fields(order_item_custom_fields):

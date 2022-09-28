@@ -212,9 +212,11 @@ def create_shipment(
 
 	if shipment.shipment_items:
 		shipment_items = [shipment_item.get("name") for shipment_item in shipment.get("shipment_items")]
+		shipment_qty = [shipment_item.get("quantity") for shipment_item in shipment.get("shipment_items")]
+		description_of_content = {shipment_items[i]: "Qty " + shipment_qty[i] for i in range(len(shipment_items))}
 
 		shipment_doc.update({
-			"desciption_of_content": ', '.join(shipment_items)
+			"desciption_of_content": '\n'.join("{}: {}".format(k, v) for k, v in description_of_content.items())
 		})
 
 	if shipment.dimensions:

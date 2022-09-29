@@ -195,7 +195,6 @@ def create_shipment(
 	shipment_doc: "Shipment" = make_shipment(delivery_note.name)
 	shipment_doc.update(
 		{
-			# todo: change description of content to shipment items.
 			"shipment_id": shipment.shipment_id,
 			"pickup_date": shipment.create_date,
 			"carrier": shipment.carrier_code,
@@ -213,7 +212,8 @@ def create_shipment(
 	if shipment.shipment_items:
 		description = ""
 		for count, shipment_item in enumerate(shipment.shipment_items, 1):
-			description += f"{count}. {shipment_item.name} - {shipment_item.quantity} {frappe.db.get_value('Item', {'item_name': shipment_item.name}, 'stock_uom')}\n"
+			stock_uom = frappe.db.get_value('Item', {'item_name': shipment_item.name}, 'stock_uom')
+			description += f"{count}. {shipment_item.name} - {shipment_item.quantity} {stock_uom}\n"
 
 		shipment_doc.update({
 			"description_of_content": description

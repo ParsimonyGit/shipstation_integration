@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 
 def get_setup_stages(args=None):
@@ -244,45 +245,45 @@ def setup_custom_fields(args=None):
 				label="Shipstation Shipment ID",
 				insert_after="shipstation_order_id",
 				translatable=False,
-			),
-			dict(
-				fieldtype="Section Break",
-				fieldname="sb_shipment",
-				collapsible=True,
-				label="Shipment Details",
-				insert_after="has_pii",
-			),
-			dict(
-				fieldtype="Data",
-				fieldname="carrier",
-				read_only=True,
-				label="Carrier",
-				insert_after="sb_shipment",
-				translatable=False,
-			),
-			dict(
-				fieldtype="Data",
-				fieldname="tracking_number",
-				read_only=True,
-				label="Tracking Number",
-				insert_after="carrier",
-				translatable=False,
-			),
-			dict(
-				fieldtype="Column Break",
-				fieldname="cb_shipment",
-				insert_after="tracking_number",
-			),
-			dict(
-				fieldtype="Data",
-				fieldname="carrier_service",
-				read_only=True,
-				label="Carrier Service",
-				insert_after="cb_shipment",
-				translatable=False,
-			),
+			)
 		]
 	)
+
+	shipment_fields = [
+		dict(
+			fieldtype="Data",
+			fieldname="shipstation_store_name",
+			read_only=True,
+			label="Shipstation Store",
+			insert_after="shipment_amount",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="shipstation_order_id",
+			read_only=True,
+			label="Shipstation Order ID",
+			insert_after="shipstation_store_name",
+			in_standard_filter=True,
+			translatable=False,
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="marketplace",
+			read_only=True,
+			label="Marketplace",
+			insert_after="awb_number",
+			translatable=False,
+		),
+		dict(
+			fieldtype="Data",
+			fieldname="marketplace_order_id",
+			read_only=True,
+			label="Marketplace Order ID",
+			insert_after="marketplace",
+			translatable=False,
+		)
+	]
 
 	custom_fields = {
 		"Item": item_fields,
@@ -293,7 +294,53 @@ def setup_custom_fields(args=None):
 		"Sales Invoice Item": common_custom_sales_item_fields,
 		"Delivery Note": delivery_note_fields,
 		"Delivery Note Item": common_custom_sales_item_fields,
+		"Shipment": shipment_fields,
 	}
 
 	print("Creating custom fields for Shipstation")
 	create_custom_fields(custom_fields)
+
+	property_setters = [
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="length",
+			property="label",
+			property_type="Text",
+			value="Length (Inch)",
+		),
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="width",
+			property="label",
+			property_type="Text",
+			value="Width (Inch)",
+		),
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="height",
+			property="label",
+			property_type="Text",
+			value="Height (Inch)",
+		),
+		dict(
+			doctype="Shipment Parcel",
+			fieldname="weight",
+			property="label",
+			property_type="Text",
+			value="Weight (Ounce)",
+		)
+	]
+
+	print("Creating property setters for Shipstation")
+	for property_setter in property_setters:
+		if not frappe.db.exists(
+			"Property Setter",
+			dict(
+				doc_type=property_setter.get("doctype"),
+				field_name=property_setter.get("fieldname"),
+				property=property_setter.get("property"),
+				property_type=property_setter.get("property_type"),
+				value=property_setter.get("value"),
+			),
+		):
+			make_property_setter(**property_setter)

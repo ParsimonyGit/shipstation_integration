@@ -1,2 +1,3 @@
 shipstation_integration.patches.set_enable_checks_in_shipstation_store
 shipstation_integration.patches.update_shipstation_warehouses
+shipstation_integration.patches.delete_delivery_note_shipment_custom_fields

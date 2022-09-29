@@ -1,5 +1,6 @@
 import frappe
 
+
 def execute():
 	delivery_note_custom_fields = [
 		'Delivery Note-shipment_details',

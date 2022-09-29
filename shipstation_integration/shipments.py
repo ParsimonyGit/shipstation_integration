@@ -70,6 +70,7 @@ def list_shipments(
 				"store_id": store.store_id,
 				"create_date_start": last_shipment_datetime,
 				"create_date_end": datetime.datetime.utcnow(),
+				"include_shipment_items": True
 			}
 
 			try:
@@ -211,12 +212,12 @@ def create_shipment(
 
 
 	if shipment.shipment_items:
-		shipment_items = [shipment_item.get("name") for shipment_item in shipment.get("shipment_items")]
-		shipment_qty = [shipment_item.get("quantity") for shipment_item in shipment.get("shipment_items")]
-		description_of_content = {shipment_items[i]: "Qty " + shipment_qty[i] for i in range(len(shipment_items))}
+		description = ""
+		for shipment_item in shipment.shipment_items:
+			description += ("{0} - {1} {2}\n").format(shipment_item.name, shipment_item.quantity, frappe.db.get_value("Item", shipment_item.name, "stock_uom"))
 
 		shipment_doc.update({
-			"desciption_of_content": '\n'.join("{}: {}".format(k, v) for k, v in description_of_content.items())
+			"desciption_of_content": description
 		})
 
 	if shipment.dimensions:

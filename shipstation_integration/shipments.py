@@ -213,8 +213,8 @@ def create_shipment(
 
 	if shipment.shipment_items:
 		description = ""
-		for shipment_item in shipment.shipment_items:
-			description += ("{0} - {1} {2}\n").format(shipment_item.name, shipment_item.quantity, frappe.db.get_value("Item", {"item_name": shipment_item.name}, "stock_uom"))
+		for count, shipment_item in enumerate(shipment.shipment_items, 1):
+			description += ("{0}. {1} - {2} {3}\n").format(count, shipment_item.name, shipment_item.quantity, frappe.db.get_value("Item", {"item_name": shipment_item.name}, "stock_uom"))
 
 		shipment_doc.update({
 			"description_of_content": description

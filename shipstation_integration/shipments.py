@@ -214,10 +214,10 @@ def create_shipment(
 	if shipment.shipment_items:
 		description = ""
 		for shipment_item in shipment.shipment_items:
-			description += ("{0} - {1} {2}\n").format(shipment_item.name, shipment_item.quantity, frappe.db.get_value("Item", shipment_item.name, "stock_uom"))
+			description += ("{0} - {1} {2}\n").format(shipment_item.name, shipment_item.quantity, frappe.db.get_value("Item", {"item_name": shipment_item.name}, "stock_uom"))
 
 		shipment_doc.update({
-			"desciption_of_content": description
+			"description_of_content": description
 		})
 
 	if shipment.dimensions:

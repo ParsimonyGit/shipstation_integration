@@ -327,7 +327,7 @@ def setup_custom_fields(args=None):
 			fieldname="weight",
 			property="label",
 			property_type="Text",
-			value="Weight (Ounce)",
+			value="Weight (Pounds)",
 		)
 	]
 

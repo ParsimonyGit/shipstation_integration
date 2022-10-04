@@ -220,13 +220,19 @@ def create_shipment(
 		})
 
 	if shipment.dimensions:
+		if shipment.weight.value:
+			weight_in_ounces = shipment.weight.value
+			weight_in_pounds = weight_in_ounces / 16
+		else:
+			weight_in_pounds = 0.01
+
 		shipment_doc.append(
 			"shipment_parcel",
 			{
 				"length": shipment.dimensions.length,
 				"width": shipment.dimensions.width,
 				"height": shipment.dimensions.height,
-				"weight": shipment.weight.value or 0.01,
+				"weight": weight_in_pounds,
 			},
 		)
 

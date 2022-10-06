@@ -200,6 +200,7 @@ def create_shipment(
 			"carrier": shipment.carrier_code,
 			"carrier_service": shipment.service_code,
 			"awb_number": shipment.tracking_number,
+			"shipment_amount": shipment.shipment_cost,
 			"service_provider": "Shipstation",
 			"incoterm": "DAP (Delivered At Place)",
 			"shipstation_store_name": store.store_name,

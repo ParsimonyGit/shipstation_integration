@@ -70,6 +70,8 @@ class ShipstationSettings(Document):
 		for store in self.shipstation_stores:
 			if store.enable_shipments and not store.enable_orders:
 				store.enable_shipments = False
+				store.create_sales_invoices = False
+				store.create_delivery_notes = False
 
 	@frappe.whitelist()
 	def update_carriers_and_stores(self):

@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "creation": "2020-09-02 16:29:26.123536",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,6 +10,8 @@
   "cb_store",
   "enable_orders",
   "enable_shipments",
+  "create_sales_invoices",
+  "create_delivery_notes",
   "marketplace_name",
   "sb_amazon",
   "is_amazon_store",
@@ -147,10 +150,25 @@
    "fieldname": "sb_amazon",
    "fieldtype": "Section Break",
    "label": "Amazon"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_orders && doc.enable_shipments",
+   "fieldname": "create_delivery_notes",
+   "fieldtype": "Check",
+   "label": "Create Delivery Notes"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_orders && doc.enable_shipments",
+   "fieldname": "create_sales_invoices",
+   "fieldtype": "Check",
+   "label": "Create Sales Invoices"
   }
  ],
  "istable": 1,
- "modified": "2021-04-20 05:51:44.972714",
+ "links": [],
+ "modified": "2022-10-11 07:20:02.722734",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Store",

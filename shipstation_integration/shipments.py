@@ -68,7 +68,13 @@ def list_shipments(
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
-			if not store.enable_shipments:
+			if not store.enable_shipments or not any(
+				[
+					store.create_sales_invoice,
+					store.create_delivery_note,
+					store.create_shipment,
+				]
+			):
 				continue
 
 			parameters = {
@@ -109,9 +115,7 @@ def list_shipments(
 					create_erpnext_shipment(shipment, store)
 
 
-def create_erpnext_shipment(
-	shipment: "ShipStationOrder", store: "ShipstationStore"
-) -> Union[str, None]:
+def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationStore"):
 	"""
 	Create a Delivery Note using shipment data from Shipstation
 
@@ -121,20 +125,18 @@ def create_erpnext_shipment(
 	Args:
 		shipment (ShipStationOrder): The shipment data.
 		store (ShipStationStore): The current active Shipstation store.
-
-	Returns:
-		str, None: The ID of the Delivery Note, if created, otherwise None.
 	"""
 
 	sales_invoice = None
-	if store.create_sales_invoices:
+	if store.create_sales_invoice:
 		sales_invoice = create_sales_invoice(shipment, store)
 
-	if store.create_delivery_notes:
+	delivery_note = None
+	if store.create_delivery_note:
 		delivery_note = create_delivery_note(shipment, sales_invoice)
-		if delivery_note:
-			shipment = create_shipment(shipment, delivery_note, store)
-			return delivery_note.name
+
+	if store.create_shipment:
+		shipment = create_shipment(shipment, store, delivery_note)
 
 
 def cancel_voided_shipments(shipment: "ShipStationOrder"):
@@ -189,7 +191,7 @@ def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"
 
 
 def create_delivery_note(
-	shipment: "ShipStationOrder", sales_invoice: Union["SalesInvoice", None]
+	shipment: "ShipStationOrder", sales_invoice: Optional["SalesInvoice"] = None
 ):
 	if sales_invoice:
 		dn: "DeliveryNote" = make_delivery_from_invoice(sales_invoice.name)
@@ -214,10 +216,21 @@ def create_delivery_note(
 
 def create_shipment(
 	shipment: "ShipStationOrder",
-	delivery_note: "DeliveryNote",
 	store: "ShipstationStore",
+	delivery_note: Optional["DeliveryNote"] = None,
 ):
-	shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+	if delivery_note:
+		shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+	else:
+		shipment_deliveries = frappe.get_all(
+			"Delivery Note",
+			filters={"shipstation_shipment_id": shipment.shipment_id},
+			pluck="name",
+		)
+		if not shipment_deliveries:
+			return
+		shipment_doc: "Shipment" = make_shipment(shipment_deliveries[0])
+
 	shipment_doc.update(
 		{
 			"shipment_id": shipment.shipment_id,

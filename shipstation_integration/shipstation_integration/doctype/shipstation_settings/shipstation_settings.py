@@ -8,7 +8,6 @@ from typing import List
 from shipstation import ShipStation
 
 import frappe
-from frappe import _
 from frappe.model.document import Document
 from frappe.utils.nestedset import get_root_of
 
@@ -70,8 +69,9 @@ class ShipstationSettings(Document):
 		for store in self.shipstation_stores:
 			if store.enable_shipments and not store.enable_orders:
 				store.enable_shipments = False
-				store.create_sales_invoices = False
-				store.create_delivery_notes = False
+				store.create_sales_invoice = False
+				store.create_delivery_note = False
+				store.create_shipment = False
 
 	@frappe.whitelist()
 	def update_carriers_and_stores(self):
@@ -167,7 +167,7 @@ class ShipstationSettings(Document):
 			return "No products found to import"
 		for product in products:
 			create_item(product, settings=self)
-		return "{} product(s) imported succesfully".format(len(products.results))
+		return f"{len(products.results)} product(s) imported succesfully"
 
 	def _carrier_data(self):
 		return json.loads(self.carrier_data)

@@ -5,8 +5,13 @@ from httpx import HTTPError
 
 import frappe
 from frappe.utils import getdate
-from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_delivery_note
-from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
+from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
+	make_delivery_note as make_delivery_from_invoice,
+)
+from erpnext.selling.doctype.sales_order.sales_order import (
+	make_sales_invoice,
+	make_delivery_note as make_delivery_from_order,
+)
 from erpnext.stock.doctype.delivery_note.delivery_note import make_shipment
 
 if TYPE_CHECKING:
@@ -63,14 +68,20 @@ def list_shipments(
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
-			if not store.enable_shipments:
+			if not store.enable_shipments or not any(
+				[
+					store.create_sales_invoice,
+					store.create_delivery_note,
+					store.create_shipment,
+				]
+			):
 				continue
 
 			parameters = {
 				"store_id": store.store_id,
 				"create_date_start": last_shipment_datetime,
 				"create_date_end": datetime.datetime.utcnow(),
-				"include_shipment_items": True
+				"include_shipment_items": True,
 			}
 
 			try:
@@ -104,9 +115,7 @@ def list_shipments(
 					create_erpnext_shipment(shipment, store)
 
 
-def create_erpnext_shipment(
-	shipment: "ShipStationOrder", store: "ShipstationStore"
-) -> Union[str, None]:
+def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationStore"):
 	"""
 	Create a Delivery Note using shipment data from Shipstation
 
@@ -116,21 +125,28 @@ def create_erpnext_shipment(
 	Args:
 		shipment (ShipStationOrder): The shipment data.
 		store (ShipStationStore): The current active Shipstation store.
-
-	Returns:
-		str, None: The ID of the Delivery Note, if created, otherwise None.
 	"""
 
-	sales_invoice = create_sales_invoice(shipment, store)
-	if not sales_invoice:
-		return
+	sales_invoice = None
+	if store.create_sales_invoice:
+		sales_invoice = create_sales_invoice(shipment, store)
 
-	delivery_note = create_delivery_note(shipment, sales_invoice)
-	shipment = create_shipment(shipment, delivery_note, store)
-	return delivery_note.name
+	delivery_note = None
+	if store.create_delivery_note:
+		delivery_note = create_delivery_note(shipment, sales_invoice)
+
+	if store.create_shipment:
+		shipment = create_shipment(shipment, store, delivery_note)
 
 
 def cancel_voided_shipments(shipment: "ShipStationOrder"):
+	existing_shipment = frappe.db.get_value(
+		"Shipment",
+		{"docstatus": 1, "shipment_id": shipment.shipment_id},
+	)
+	if existing_shipment:
+		frappe.get_doc("Shipment", existing_shipment).cancel()
+
 	existing_dn = frappe.db.get_value(
 		"Delivery Note",
 		{"docstatus": 1, "shipstation_shipment_id": shipment.shipment_id},
@@ -174,8 +190,19 @@ def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"
 	return si
 
 
-def create_delivery_note(shipment: "ShipStationOrder", sales_invoice: "SalesInvoice"):
-	dn: "DeliveryNote" = make_delivery_note(sales_invoice.name)
+def create_delivery_note(
+	shipment: "ShipStationOrder", sales_invoice: Optional["SalesInvoice"] = None
+):
+	if sales_invoice:
+		dn: "DeliveryNote" = make_delivery_from_invoice(sales_invoice.name)
+	else:
+		so_name = frappe.get_value(
+			"Sales Order", {"shipstation_order_id": shipment.order_id}
+		)
+		if not so_name:
+			return
+		dn: "DeliveryNote" = make_delivery_from_order(so_name)
+
 	dn.shipstation_shipment_id = shipment.shipment_id
 
 	for row in dn.items:
@@ -189,10 +216,21 @@ def create_delivery_note(shipment: "ShipStationOrder", sales_invoice: "SalesInvo
 
 def create_shipment(
 	shipment: "ShipStationOrder",
-	delivery_note: "DeliveryNote",
 	store: "ShipstationStore",
+	delivery_note: Optional["DeliveryNote"] = None,
 ):
-	shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+	if delivery_note:
+		shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+	else:
+		shipment_deliveries = frappe.get_all(
+			"Delivery Note",
+			filters={"shipstation_shipment_id": shipment.shipment_id},
+			pluck="name",
+		)
+		if not shipment_deliveries:
+			return
+		shipment_doc: "Shipment" = make_shipment(shipment_deliveries[0])
+
 	shipment_doc.update(
 		{
 			"shipment_id": shipment.shipment_id,
@@ -213,12 +251,11 @@ def create_shipment(
 	if shipment.shipment_items:
 		description = ""
 		for count, shipment_item in enumerate(shipment.shipment_items, 1):
-			stock_uom = frappe.db.get_value('Item', {'item_name': shipment_item.name}, 'stock_uom')
+			stock_uom = frappe.db.get_value(
+				"Item", {"item_name": shipment_item.name}, "stock_uom"
+			)
 			description += f"{count}. {shipment_item.name} - {shipment_item.quantity} {stock_uom}\n"
-
-		shipment_doc.update({
-			"description_of_content": description
-		})
+		shipment_doc.update({"description_of_content": description})
 
 	if shipment.dimensions:
 		if shipment.weight.value:

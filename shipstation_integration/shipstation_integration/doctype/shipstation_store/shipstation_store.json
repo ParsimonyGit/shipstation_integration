@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "creation": "2020-09-02 16:29:26.123536",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,6 +10,9 @@
   "cb_store",
   "enable_orders",
   "enable_shipments",
+  "create_sales_invoice",
+  "create_delivery_note",
+  "create_shipment",
   "marketplace_name",
   "sb_amazon",
   "is_amazon_store",
@@ -132,25 +136,52 @@
   },
   {
    "default": "0",
+   "description": "Enable auto-pulling of orders from Shipstation",
    "fieldname": "enable_orders",
    "fieldtype": "Check",
-   "label": "Enable Orders"
+   "label": "Pull Orders"
   },
   {
    "default": "0",
    "depends_on": "eval:doc.enable_orders",
+   "description": "Enable auto-pulling of shipments from Shipstation",
    "fieldname": "enable_shipments",
    "fieldtype": "Check",
-   "label": "Enable Shipments"
+   "label": "Pull Shipments"
   },
   {
    "fieldname": "sb_amazon",
    "fieldtype": "Section Break",
    "label": "Amazon"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_orders && doc.enable_shipments",
+   "description": "Create a sales invoice against the order when pulling the Shipstation shipment",
+   "fieldname": "create_sales_invoice",
+   "fieldtype": "Check",
+   "label": "Create Sales Invoice"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_orders && doc.enable_shipments",
+   "description": "Create a delivery note against the order when pulling the Shipstation shipment",
+   "fieldname": "create_delivery_note",
+   "fieldtype": "Check",
+   "label": "Create Delivery Note"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_orders && doc.enable_shipments",
+   "description": "Create a shipment against the delivery note when pulling the Shipstation shipment (if delivery note creation is disabled, the system will try to make shipments against existing delivery notes using the shipment ID)",
+   "fieldname": "create_shipment",
+   "fieldtype": "Check",
+   "label": "Create Shipment"
   }
  ],
  "istable": 1,
- "modified": "2021-04-20 05:51:44.972714",
+ "links": [],
+ "modified": "2022-10-12 07:18:15.800754",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Store",

@@ -201,6 +201,10 @@ def create_erpnext_order(
 		order_items = frappe.get_attr(process_order_items_hook[0])(order_items)
 
 	for item in order_items:
+
+		if item.quantity < 1:
+			continue
+
 		settings = frappe.get_doc("Shipstation Settings", store.parent)
 		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)

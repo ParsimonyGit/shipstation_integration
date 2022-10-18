@@ -202,8 +202,9 @@ def create_erpnext_order(
 
 	for item in order_items:
 		# skip the item if the quantity is 0 (item was refunded)
-		if item.quantity == 0:
+		if item.quantity < 1:
 			continue
+
 		settings = frappe.get_doc("Shipstation Settings", store.parent)
 		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)
@@ -218,9 +219,9 @@ def create_erpnext_order(
 				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes,
 			}
-		options_import = frappe.get_all("Shipstation Options Import", 
-			filters = dict(parent=store.parent),
-			fields = ["shipstation_option_name", "sales_order_item_field"])
+		options_import = frappe.get_all("Shipstation Options Import",
+			filters=dict(parent=store.parent),
+			fields=["shipstation_option_name", "sales_order_item_field"])
 		if options_import:
 			for option_import in options_import:
 				for option in item.options:

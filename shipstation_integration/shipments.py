@@ -135,8 +135,11 @@ def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationSto
 	if store.create_delivery_note:
 		delivery_note = create_delivery_note(shipment, sales_invoice)
 
+	shipment_doc = None
 	if store.create_shipment:
-		shipment = create_shipment(shipment, store, delivery_note)
+		shipment_doc = create_shipment(shipment, store, delivery_note)
+
+	return shipment_doc
 
 
 def cancel_voided_shipments(shipment: "ShipStationOrder"):
@@ -281,4 +284,4 @@ def create_shipment(
 	shipment_doc.submit()
 	frappe.db.commit()
 
-	return shipment
+	return shipment_doc

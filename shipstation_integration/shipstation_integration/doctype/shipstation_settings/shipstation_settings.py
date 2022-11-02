@@ -97,12 +97,12 @@ class ShipstationSettings(Document):
 		unstructured_carriers = []
 		carriers = client.list_carriers()
 		for carrier in carriers:
-			carrier = carrier._unstructure()
+			carrier_dict = carrier._unstructure()
 			services = client.list_services(carrier.code)
-			carrier['services'] = [s._unstructure() for s in services]
+			carrier_dict['services'] = [s._unstructure() for s in services]
 			packages = client.list_packages(carrier.code)
-			carrier['packages'] = [p._unstructure() for p in packages]
-			unstructured_carriers.append(carrier)
+			carrier_dict['packages'] = [p._unstructure() for p in packages]
+			unstructured_carriers.append(carrier_dict)
 
 		self.carrier_data = json.dumps(unstructured_carriers)
 		self.update_stores()

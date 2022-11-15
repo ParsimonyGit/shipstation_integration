@@ -25,10 +25,10 @@
   "sb_stores",
   "shipstation_stores",
   "sb_itemmeta",
+  "options_import",
+  "create_custom_fields_for_items",
   "order_item_custom_fields",
   "update_order_item_custom_fields",
-  "column_break_20",
-  "options_import",
   "sb_carriers",
   "carrier_data",
   "carriers_html"
@@ -167,16 +167,14 @@
    "label": "Metadata Import"
   },
   {
-   "fieldname": "column_break_20",
-   "fieldtype": "Column Break"
-  },
-  {
+   "depends_on": "eval:doc.create_custom_fields_for_items",
    "fieldname": "order_item_custom_fields",
    "fieldtype": "Table",
    "label": "Sales Order Item Custom Fields",
    "options": "Shipstation Item Custom Fields"
   },
   {
+   "depends_on": "eval:doc.create_custom_fields_for_items",
    "fieldname": "update_order_item_custom_fields",
    "fieldtype": "Button",
    "label": "Create/Update Custom Fields"
@@ -186,11 +184,17 @@
    "fieldtype": "Table",
    "label": "Shipstation Options Import",
    "options": "Shipstation Options Import"
+  },
+  {
+   "default": "0",
+   "fieldname": "create_custom_fields_for_items",
+   "fieldtype": "Check",
+   "label": "Define New Custom Fields for Sales Order Items"
   }
  ],
  "hide_toolbar": 1,
  "links": [],
- "modified": "2022-07-06 13:38:50.958416",
+ "modified": "2022-11-15 15:14:56.590592",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

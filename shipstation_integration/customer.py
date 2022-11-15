@@ -1,16 +1,21 @@
 from typing import TYPE_CHECKING
 
 import frappe
-from frappe.utils import parse_addr
+from frappe.utils import getdate, parse_addr
 
 if TYPE_CHECKING:
     from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
     from frappe.contacts.doctype.address.address import Address
     from frappe.contacts.doctype.contact.contact import Contact
     from shipstation.models import ShipStationAddress, ShipStationOrder
+    from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
+        ShipstationStore,
+    )
 
 
-def update_customer_details(existing_so: str, order: "ShipStationOrder"):
+def update_customer_details(
+    existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"
+):
     existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
     email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
@@ -18,8 +23,19 @@ def update_customer_details(existing_so: str, order: "ShipStationOrder"):
         contact = create_contact(order, email_id)
         existing_so_doc.contact_person = contact.name
 
-    existing_so_doc.shipstation_order_id = order.order_id
-    existing_so_doc.has_pii = True
+    existing_so_doc.update(
+        {
+            "shipstation_order_id": order.order_id,
+            "shipstation_store_name": store.store_name,
+            "shipstation_customer_notes": getattr(order, "customer_notes", None),
+            "shipstation_internal_notes": getattr(order, "internal_notes", None),
+            "marketplace_order_id": order.order_number,
+            "delivery_date": getdate(order.ship_date),
+            "has_pii": True,
+            "integration_doctype": "Shipstation Settings",
+            "integration_doc": store.parent,
+        }
+    )
 
     if order.bill_to and order.bill_to.street1:
         if existing_so_doc.customer_address:
@@ -106,10 +122,7 @@ def create_customer(order: "ShipStationOrder"):
     )
 
     customer_name = (
-        order.customer_email
-        or order.customer_id
-        or order.ship_to.name
-        or customer_id
+        order.customer_email or order.customer_id or order.ship_to.name or customer_id
     )
 
     if frappe.db.exists("Customer", customer_name):

@@ -9,13 +9,21 @@ from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStation
 import frappe
 from frappe import _
 from frappe.contacts.doctype.address.address import Address
-from frappe.utils.data import get_datetime, today
+from frappe.utils import get_datetime, get_link_to_form, today
 from frappe.utils.file_manager import save_file
+
+from shipstation_integration.shipments import (
+	cancel_voided_shipments,
+	create_erpnext_shipment,
+)
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.file.file import File
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
-		ShipstationSettings
+		ShipstationSettings,
+	)
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
+		ShipstationStore,
 	)
 
 
@@ -105,7 +113,7 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 	if isinstance(shipment, dict) and shipment.get("ExceptionMessage"):
 		process_error(
 			shipment,
-			message="There was an error generating the label. Please contact your administrator."
+			message="There was an error generating the label. Please contact your administrator.",
 		)
 
 	pdf = BytesIO(base64.b64decode(shipment.label_data))
@@ -125,7 +133,7 @@ def attach_shipping_label(pdf: BytesIO, doctype: str, name: str):
 	if not isinstance(pdf, BytesIO):
 		process_error(
 			pdf,
-			message="There was an error attaching the label. Please contact your administrator."
+			message="There was an error attaching the label. Please contact your administrator.",
 		)
 
 	file: "File" = save_file(
@@ -134,7 +142,7 @@ def attach_shipping_label(pdf: BytesIO, doctype: str, name: str):
 		dt=doctype,
 		dn=name,
 		folder="Home/Shipstation Labels",
-		is_private=True
+		is_private=True,
 	)
 
 	return file
@@ -179,7 +187,7 @@ def get_shipstation_address(address: Address, person_name: str = str()):
 		state=address.state,
 		postal_code=address.pincode,
 		phone=address.phone,
-		country=country_code
+		country=country_code,
 	)
 
 
@@ -229,3 +237,74 @@ def get_shipstation_settings(doc: str) -> Optional[str]:
 def push_attachment_update(attachment: "File", user: str):
 	js = f"if (cur_frm.doc.name =='{attachment.attached_to_name}') {{cur_frm.refresh();}}"
 	frappe.publish_realtime("eval_js", js, user=user or frappe.session.user)
+
+
+@frappe.whitelist()
+def fetch_shipment(delivery_note: str):
+	delivery_note = frappe.get_doc("Delivery Note", delivery_note)
+
+	if (
+		delivery_note.integration_doctype == "Shipstation Settings"
+		and delivery_note.integration_doc
+	):
+		settings = [delivery_note.integration_doc]
+	else:
+		settings = frappe.get_all("Shipstation Settings", pluck="name")
+
+	for setting in settings:
+		sss_doc = frappe.get_doc("Shipstation Settings", setting)
+		client = sss_doc.client()
+		client.timeout = 60
+
+		parameters = {
+			"order_id": delivery_note.shipstation_order_id,
+			"include_shipment_items": True,
+		}
+
+		try:
+			shipments: List["ShipStationOrder"] = client.list_shipments(
+				parameters=parameters
+			)
+		except Exception as e:
+			frappe.log_error(
+				title="Error while fetching Shipstation shipment", message=e
+			)
+			return
+
+		created_shipments = []
+		for shipment in shipments:
+			# sometimes Shipstation will return `None` in the response
+			if not shipment:
+				continue
+
+			existing_shipments = frappe.get_all(
+				"Shipment", filters={"shipment_id": shipment.shipment_id}
+			)
+
+			if existing_shipments:
+				continue
+
+			if shipment.voided:
+				cancel_voided_shipments(shipment)
+			else:
+				store_id = shipment.advanced_options.store_id
+				store: "ShipstationStore" = next(
+					(
+						store
+						for store in sss_doc.shipstation_stores
+						if store.store_id == store_id
+					),
+					None,
+				)
+
+				delivery_note.db_set("shipstation_shipment_id", shipment.shipment_id)
+				shipment = create_erpnext_shipment(shipment, store)
+				if shipment:
+					created_shipments.append(
+						get_link_to_form(shipment.doctype, shipment.name)
+					)
+
+		if created_shipments:
+			frappe.msgprint(
+				_("Created Shipment(s): {0}").format(", ".join(created_shipments))
+			)

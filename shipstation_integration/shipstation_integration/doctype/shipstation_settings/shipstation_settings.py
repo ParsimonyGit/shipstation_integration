@@ -5,9 +5,11 @@
 import json
 from typing import List
 
+from httpx import HTTPError
 from shipstation import ShipStation
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils.nestedset import get_root_of
 
@@ -27,10 +29,12 @@ class ShipstationSettings(Document):
 	@property
 	def active_warehouse_ids(self) -> List[str]:
 		warehouse_ids = []
+
 		for warehouse in self.shipstation_warehouses:
 			warehouse_id = frappe.db.get_value("Warehouse",
 				warehouse.get("warehouse"), "shipstation_warehouse_id")
 			warehouse_ids.append(warehouse_id)
+
 		return warehouse_ids
 
 	def onload(self):
@@ -40,6 +44,9 @@ class ShipstationSettings(Document):
 	def validate(self):
 		self.validate_label_generation()
 		self.validate_enabled_stores()
+
+	def before_insert(self):
+		self.validate_api_connection()
 
 	def after_insert(self):
 		self.update_carriers_and_stores()
@@ -73,18 +80,30 @@ class ShipstationSettings(Document):
 				store.create_delivery_note = False
 				store.create_shipment = False
 
+	def validate_api_connection(self):
+		try:
+			client = self.client()
+			client.list_carriers()
+		except HTTPError as e:
+			if e.response.status_code == 401:
+				frappe.throw(_("Invalid API key or secret"))
+			else:
+				frappe.throw(_(e.text))
+
 	@frappe.whitelist()
 	def update_carriers_and_stores(self):
+		client = self.client()
+
 		unstructured_carriers = []
-		carriers = self.client().list_carriers()
+		carriers = client.list_carriers()
 		for carrier in carriers:
-			carrier_code = carrier.code
-			carrier = carrier._unstructure()
-			services = self.client().list_services(carrier_code)
-			carrier['services'] = [s._unstructure() for s in services]
-			packages = self.client().list_packages(carrier_code)
-			carrier['packages'] = [p._unstructure() for p in packages]
-			unstructured_carriers.append(carrier)
+			carrier_dict = carrier._unstructure()
+			services = client.list_services(carrier.code)
+			carrier_dict['services'] = [s._unstructure() for s in services]
+			packages = client.list_packages(carrier.code)
+			carrier_dict['packages'] = [p._unstructure() for p in packages]
+			unstructured_carriers.append(carrier_dict)
+
 		self.carrier_data = json.dumps(unstructured_carriers)
 		self.update_stores()
 		self.save()
@@ -94,6 +113,7 @@ class ShipstationSettings(Document):
 	def update_warehouses(self):
 		self.shipstation_warehouses = []
 		root_warehouse = get_root_of("Warehouse")
+
 		if not frappe.db.exists("Warehouse", {"warehouse_name": "Shipstation Warehouses"}):
 			ss_warehouse_doc = frappe.new_doc("Warehouse")
 			ss_warehouse_doc.update({
@@ -102,8 +122,10 @@ class ShipstationSettings(Document):
 				"is_group": True
 			})
 			ss_warehouse_doc.insert()
+
 		parent_warehouse = frappe.get_doc("Warehouse", {"warehouse_name": "Shipstation Warehouses"})
 		warehouses = self.client().list_warehouses()
+
 		for warehouse in warehouses:
 			if frappe.db.exists("Warehouse", {"shipstation_warehouse_id": warehouse.warehouse_id}):
 				warehouse_doc = frappe.get_doc("Warehouse",
@@ -116,7 +138,9 @@ class ShipstationSettings(Document):
 					"parent_warehouse": parent_warehouse.name
 				})
 				warehouse_doc.insert()
+
 			self.append("shipstation_warehouses", {"warehouse": warehouse_doc.name})
+
 		self.save()
 
 	def update_stores(self):
@@ -158,15 +182,19 @@ class ShipstationSettings(Document):
 					"marketplace_name": store.marketplace_name,
 					"store_name": store.store_name
 				})
+
 		return self
 
 	@frappe.whitelist()
 	def get_items(self):
 		products = self.client().list_products()
+
 		if not products.results:
 			return "No products found to import"
+
 		for product in products:
 			create_item(product, settings=self)
+
 		return f"{len(products.results)} product(s) imported succesfully"
 
 	def _carrier_data(self):
@@ -182,12 +210,15 @@ class ShipstationSettings(Document):
 		for ss_carrier in self._carrier_data():
 			if carrier in [ss_carrier.get('name'), ss_carrier.get('nickname')]:
 				_carrier = ss_carrier['code']
+
 				for serv in ss_carrier['services']:
 					if serv['name'] == service:
 						_service = serv['code']
+
 				for pack in ss_carrier['packages']:
 					if pack['name'] == package:
 						_package = pack['code']
+
 		return _carrier, _service, _package
 
 	# create custom fields on the Sales Order Item doctype from the order_item_custom_fields table for storing Shipstation metadata

@@ -226,7 +226,8 @@ def create_erpnext_order(
 			# check to see if the option is in the Options Import table
 			option_import = next((x for x in options_import if x.shipstation_option_name == option.name), None)
 			if option_import:
-				item_dict[option_import.sales_order_item_field] = option.value
+				if option_import.sales_order_item_field:
+					item_dict[option_import.sales_order_item_field] = option.value
 			else:
 				# if the option name is not in the Options Import table, add it
 				settings.append("options_import", {

@@ -21,11 +21,12 @@ frappe.ui.form.on("Shipstation Settings", {
         frm.set_query("expense_account", "shipstation_stores", company_query);
         frm.set_query("shipping_income_account", "shipstation_stores", company_query);
         frm.set_query("shipping_expense_account", "shipstation_stores", company_query);
-        // frm.set_query("sales_order_item_field", "options_import", function() {
-        //     return {
-        //         query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
-        //     };
-        // });
+        frm.set_query("sales_order_item_field", "options_import", function() {
+            return {
+                query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
+            };
+        });
+        frappe.meta.get_docfield("Shipstation Options Import", "sales_order_item_field", frm.docname).ignore_link_validation = true;
     },
 
     after_save: frm => {
@@ -110,132 +111,23 @@ frappe.ui.form.on("Shipstation Settings", {
 
 });
 
-// frappe.ui.form.on("Shipstation Options Import", {
-//     form_render(frm, doctype, docname) {
-//         // Render a select field for Sales Order Item Field instead of Data Input for better UX
-//         let field = frm.cur_grid.grid_form.fields_dict.sales_order_item_field;
-//         $(field.input).hide();
-
-//         let $field_select = $(`<select class="form-control">`);
-//         field.$input_wrapper.append($field_select);
-
-//         let row = frappe.get_doc(doctype, docname);
-//         let curr_value = null;
-//         if (row.sales_order_item_field) {
-//             curr_value = row.sales_order_item_field;
-//         }
-
-//         function update_fieldname_options() {
-//             $field_select.find("option").remove();
-
-//             // let link_fieldname = $doctype_select.val();
-//             // if (!link_fieldname) return;
-//             // let link_field = frm.doc.fields.find((df) => df.fieldname === link_fieldname);
-//             // let link_doctype = link_field.options;
-//             frappe.model.with_doctype("Sales Order Item", () => {
-//                 let fields = frappe.meta
-//                     .get_docfields(link_doctype, null, {
-//                         fieldtype: ["not in", frappe.model.no_value_type],
-//                     })
-//                     .map((df) => ({
-//                         label: `${df.label} (${df.fieldtype})`,
-//                         value: df.fieldname,
-//                     }));
-//                 $field_select.add_options([{
-//                         label: __("Select Field"),
-//                         value: "",
-//                         selected: true,
-//                         disabled: true,
-//                     },
-//                     ...fields,
-//                 ]);
-
-//                 if (curr_value) {
-//                     $field_select.val(curr_value);
-//                 }
-//             });
-//         }
-
-//         $field_select.on("change", () => {
-//             let sales_order_item_field = $field_select.val();
-//             row.sales_order_item_field = sales_order_item_field;
-//             frm.dirty();
-//         });
-
-//         if (curr_value) {
-//             update_fieldname_options();
-//         }
-//     },
-
-//     // fields_add: (frm) => {
-//     // 	frm.trigger("setup_default_views");
-//     // },
-// });
-
-
-// frappe.ui.form.on("Shipstation Options Import", {
-//     options_import_add: function(frm) {
-//         var shipstation_option_name = frm.doc.shipstation_option_name || null;
-//         return frappe.call({
-//             method: "frappe.custom.doctype.custom_field.custom_field.get_fields_label",
-//             args: { doctype: "Sales Order Item", fieldname: shipstation_option_name },
-//             callback: function(r) {
-//                 if (r) {
-//                     var field_labels = r.message;
-//                     //set_field_options("sales_order_item_field", field_labels);
-//                     frappe.meta.get_docfield("Shipstation Options Import", "sales_order_item_field", frm.doc.name).options = [""].concat(field_labels);
-//                     frm.refresh_field("sales_order_item_field");
-//                     console.log(field_labels);
-//                 }
-//             },
-//         });
-//     },
-
-//     shipstation_option_name: function(frm) {
-//         var shipstation_option_name = frm.doc.shipstation_option_name || null;
-//         return frappe.call({
-//             method: "frappe.custom.doctype.custom_field.custom_field.get_fields_label",
-//             args: { doctype: "Sales Order Item", fieldname: shipstation_option_name },
-//             callback: function(r) {
-//                 if (r) {
-//                     // var field_labels = r.message;
-//                     // console.log(field_labels);
-//                     var field_labels = $.map(r.message, function(v) {
-//                         return v.label;
-//                     });
-//                     set_field_options("sales_order_item_field", field_labels);
-
-//                     if (in_list(field_labels, shipstation_option_name)) {
-//                         frm.set_value("sales_order_item_field", shipstation_option_name);
-//                     }
-//                     frm.refresh_field("sales_order_item_field");
-//                 }
-//             },
-//         });
-//     },
-// });
-
-// frappe.ui.form.on("Shipstation Options Import", {
-//     shipstation_option_name: function(cur_frm, cdt, cdn) {
-//         doctype = "Sales Order Item"
-//         let row = frappe.get_doc(cdt, cdn);
-//         frappe.model.with_doctype(doctype, function() {
-//             var options = $.map(frappe.get_meta(doctype).fields,
-//                 function(d) {
-//                     if (d.fieldname && frappe.model.no_value_type.indexOf(d.fieldtype) === -1) {
-//                         return d.fieldname;
-//                     }
-//                     return null;
-//                 }
-//             );
-//             // console.log("test options select field" + options);
-
-//             frappe.meta.get_docfield("Shipstation Options Import", "sales_order_item_field", cur_frm.doc.name).options = [""].concat(options);
-
-//             // frappe.model.set_value(cdt, cdn, "sales_order_item_field", options);
-
-//             cur_frm.refresh_field("sales_order_item_field");
-
-//         });
-//     }
-// });
+frappe.ui.form.on("Shipstation Options Import", {
+    sales_order_item_field: (frm, cdt, cdn) => {
+        const row = locals[cdt][cdn];
+        row._ignore_links = true;
+        var curr_value = row.sales_order_item_field;
+        if (row.sales_order_item_field) {
+            frappe.call({
+                method: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_field_link_type",
+                args: {
+                    "fieldname": curr_value
+                },
+                callback: r => {
+                    if (r.message) {
+                        frappe.model.set_value(cdt, cdn, "sales_order_item_field_type", r.message);
+                    }
+                }
+            });
+        }
+    }
+});

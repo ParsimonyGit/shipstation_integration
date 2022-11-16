@@ -225,25 +225,53 @@ class ShipstationSettings(Document):
 	@frappe.whitelist()
 	def update_order_item_custom_fields(self):
 		order_item_custom_fields = self.order_item_custom_fields
-		insert_after = "Shipstation Item Notes"
+		insert_after = "shipstation_item_notes"
+		item_doctypes = ["Delivery Note Item", "Sales Order Item", "Sales Invoice Item"]
 		for field in order_item_custom_fields:
-			if not frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": field.fieldname}):
-				custom_field = frappe.new_doc("Custom Field")
-				custom_field.update({
-					"dt": "Sales Order Item",
-					"fieldname": field.fieldname,
-					"label": field.label,
-					"fieldtype": field.fieldtype,
-					"options": field.options,
-					"insert_after": insert_after
-				})
-				custom_field.insert()
-			if frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": field.fieldname}):
-				insert_after = field.label
+			field_def = {
+				"insert_after": insert_after,
+				"label": field.label,
+				"fieldtype": field.fieldtype,
+				"fieldname": field.fieldname,
+				"length": field.length,
+				"reqd": field.reqd,
+				"hidded": field.hidden,
+				"read_only": field.read_only,
+				"options": field.options,
+				"default": field.default,
+				"fetch_from": field.fetch_from,
+				"fetch_if_empty": field.fetch_if_empty
+			}
+			for dt in item_doctypes:
+				if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
+					custom_field = frappe.new_doc("Custom Field")
+					custom_field.dt = dt
+					custom_field.update(field_def)
+					custom_field.insert()
+				else:
+					custom_field = frappe.get_doc("Custom Field", {"dt": dt, "fieldname": field.fieldname})
+					custom_field.update(field_def)
+					custom_field.save()
+				if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
+					insert_after = field.fieldname
+				frappe.clear_cache(doctype=dt)
+				frappe.db.updatedb(dt)
+				
 
-# @frappe.whitelist()
-# @frappe.validate_and_sanitize_search_inputs
-# def get_item_fields(doctype, txt, searchfield, start, page_len, filters):
-# 	# return frappe.db.sql("""select fieldname, label from `tabCustom Field` where dt = 'Sales Order Item'""")
-# 	fields = frappe.get_meta("Sales Order Item").fields
-# 	return [[f.fieldname, f.label] for f in fields if f.fieldtype in ["Data", "Text", "Small Text", "Link", "Select"]]
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_item_fields(doctype, txt, searchfield, start, page_len, filters):
+	fields = frappe.get_meta("Sales Order Item").fields
+	fields = [[f.fieldname, f.label] for f in fields if f.fieldtype in ["Data", "Text", "Small Text", "Link", "Select"]]
+	if txt:
+		return [f for f in fields if txt.lower() in f[0].lower() or txt.lower() in f[1].lower()]
+	else:
+		return fields
+
+@frappe.whitelist()
+def get_item_field_link_type(fieldname):
+	# check if the field is a custom field
+	if frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": fieldname}):
+		return "Custom Field"
+	else:
+		return "DocField"

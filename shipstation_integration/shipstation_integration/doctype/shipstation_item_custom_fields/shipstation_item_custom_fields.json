@@ -9,10 +9,15 @@
   "label",
   "fieldtype",
   "fieldname",
-  "options",
+  "length",
   "reqd",
   "hidden",
-  "read_only"
+  "read_only",
+  "column_break_8",
+  "options",
+  "default",
+  "fetch_from",
+  "fetch_if_empty"
  ],
  "fields": [
   {
@@ -64,12 +69,38 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Read Only"
+  },
+  {
+   "depends_on": "eval:in_list(['Data', 'Link', 'Dynamic Link', 'Password', 'Select', 'Read Only', 'Attach', 'Attach Image', 'Int'], doc.fieldtype)",
+   "fieldname": "length",
+   "fieldtype": "Int",
+   "label": "Length"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default",
+   "fieldtype": "Small Text",
+   "label": "Default"
+  },
+  {
+   "fieldname": "fetch_from",
+   "fieldtype": "Small Text",
+   "label": "Fetch From"
+  },
+  {
+   "default": "0",
+   "fieldname": "fetch_if_empty",
+   "fieldtype": "Check",
+   "label": "Fetch If Empty"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2022-11-15 15:02:05.934942",
+ "modified": "2022-11-16 14:14:12.504952",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Item Custom Fields",

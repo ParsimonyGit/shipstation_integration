@@ -241,9 +241,9 @@ class ShipstationSettings(Document):
 			if frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": field.fieldname}):
 				insert_after = field.label
 
-@frappe.whitelist()
-@frappe.validate_and_sanitize_search_inputs
-def get_item_fields(doctype, txt, searchfield, start, page_len, filters):
-	# return frappe.db.sql("""select fieldname, label from `tabCustom Field` where dt = 'Sales Order Item'""")
-	fields = frappe.get_meta("Sales Order Item").fields
-	return [[f.fieldname, f.label] for f in fields if f.fieldtype in ["Data", "Text", "Small Text", "Link", "Select"]]
+# @frappe.whitelist()
+# @frappe.validate_and_sanitize_search_inputs
+# def get_item_fields(doctype, txt, searchfield, start, page_len, filters):
+# 	# return frappe.db.sql("""select fieldname, label from `tabCustom Field` where dt = 'Sales Order Item'""")
+# 	fields = frappe.get_meta("Sales Order Item").fields
+# 	return [[f.fieldname, f.label] for f in fields if f.fieldtype in ["Data", "Text", "Small Text", "Link", "Select"]]

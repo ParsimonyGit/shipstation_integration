@@ -21,11 +21,11 @@ frappe.ui.form.on("Shipstation Settings", {
         frm.set_query("expense_account", "shipstation_stores", company_query);
         frm.set_query("shipping_income_account", "shipstation_stores", company_query);
         frm.set_query("shipping_expense_account", "shipstation_stores", company_query);
-        frm.set_query("sales_order_item_field", "options_import", function() {
-            return {
-                query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
-            };
-        });
+        // frm.set_query("sales_order_item_field", "options_import", function() {
+        //     return {
+        //         query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
+        //     };
+        // });
     },
 
     after_save: frm => {

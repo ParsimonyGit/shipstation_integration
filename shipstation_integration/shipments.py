@@ -166,6 +166,13 @@ def cancel_voided_shipments(shipment: "ShipStationOrder"):
 
 
 def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"):
+	existing_si = frappe.get_value(
+		"Sales Invoice", {"shipstation_order_id": shipment.order_id}
+	)
+
+	if existing_si:
+		return frappe.get_doc("Sales Invoice", existing_si)
+
 	so_name = frappe.get_value(
 		"Sales Order", {"shipstation_order_id": shipment.order_id}
 	)
@@ -196,6 +203,14 @@ def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"
 def create_delivery_note(
 	shipment: "ShipStationOrder", sales_invoice: Optional["SalesInvoice"] = None
 ):
+
+	existing_dn = frappe.get_value(
+		"Delivery Note", {"shipstation_order_id": shipment.order_id}
+	)
+
+	if existing_dn:
+		return frappe.get_doc("Delivery Note", existing_dn)
+
 	if sales_invoice:
 		dn: "DeliveryNote" = make_delivery_from_invoice(sales_invoice.name)
 	else:

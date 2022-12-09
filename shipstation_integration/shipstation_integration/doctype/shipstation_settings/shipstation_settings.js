@@ -21,12 +21,12 @@ frappe.ui.form.on("Shipstation Settings", {
         frm.set_query("expense_account", "shipstation_stores", company_query);
         frm.set_query("shipping_income_account", "shipstation_stores", company_query);
         frm.set_query("shipping_expense_account", "shipstation_stores", company_query);
-        frm.set_query("sales_order_item_field", "options_import", function() {
+        frm.set_query("item_field", "options_import", function() {
             return {
                 query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
             };
         });
-        frappe.meta.get_docfield("Shipstation Options Import", "sales_order_item_field", frm.docname).ignore_link_validation = true;
+        frappe.meta.get_docfield("Shipstation Option", "item_field", frm.docname).ignore_link_validation = true;
     },
 
     after_save: frm => {
@@ -111,12 +111,12 @@ frappe.ui.form.on("Shipstation Settings", {
 
 });
 
-frappe.ui.form.on("Shipstation Options Import", {
-    sales_order_item_field: (frm, cdt, cdn) => {
+frappe.ui.form.on("Shipstation Option", {
+    item_field: (frm, cdt, cdn) => {
         const row = locals[cdt][cdn];
         row._ignore_links = true;
-        var curr_value = row.sales_order_item_field;
-        if (row.sales_order_item_field) {
+        var curr_value = row.item_field;
+        if (row.item_field) {
             frappe.call({
                 method: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_field_link_type",
                 args: {
@@ -124,7 +124,7 @@ frappe.ui.form.on("Shipstation Options Import", {
                 },
                 callback: r => {
                     if (r.message) {
-                        frappe.model.set_value(cdt, cdn, "sales_order_item_field_type", r.message);
+                        frappe.model.set_value(cdt, cdn, "item_field_type", r.message);
                     }
                 }
             });

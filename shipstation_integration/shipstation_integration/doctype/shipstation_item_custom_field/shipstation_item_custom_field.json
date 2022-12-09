@@ -103,7 +103,7 @@
  "modified": "2022-11-16 14:14:12.504952",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
- "name": "Shipstation Item Custom Fields",
+ "name": "Shipstation Item Custom Field",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",

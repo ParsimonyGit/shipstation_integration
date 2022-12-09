@@ -177,7 +177,7 @@
   {
    "fieldname": "options_import",
    "fieldtype": "Table",
-   "label": "Shipstation Options Import",
+   "label": "Shipstation Options",
    "options": "Shipstation Option"
   },
   {
@@ -207,7 +207,7 @@
  ],
  "hide_toolbar": 1,
  "links": [],
- "modified": "2022-12-09 12:09:17.363713",
+ "modified": "2022-12-09 16:13:16.647066",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

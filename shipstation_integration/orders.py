@@ -219,15 +219,15 @@ def create_erpnext_order(
 				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes,
 			}
-		options_import = frappe.get_all("Shipstation Options Import",
+		options_import = frappe.get_all("Shipstation Option",
 			filters=dict(parent=store.parent),
-			fields=["shipstation_option_name", "sales_order_item_field"])
+			fields=["shipstation_option_name", "item_field"])
 		for option in item.options:
 			# check to see if the option is in the Options Import table
 			option_import = next((x for x in options_import if x.shipstation_option_name == option.name), None)
 			if option_import:
-				if option_import.sales_order_item_field:
-					item_dict[option_import.sales_order_item_field] = option.value
+				if option_import.item_field:
+					item_dict[option_import.item_field] = option.value
 			else:
 				# if the option name is not in the Options Import table, add it
 				settings.append("options_import", {

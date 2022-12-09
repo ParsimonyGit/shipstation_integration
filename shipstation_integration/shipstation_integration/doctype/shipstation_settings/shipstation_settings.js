@@ -26,6 +26,7 @@ frappe.ui.form.on("Shipstation Settings", {
                 query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
             };
         });
+        // workaround for link validation on the item_field field
         frappe.meta.get_docfield("Shipstation Option", "item_field", frm.docname).ignore_link_validation = true;
     },
 
@@ -114,7 +115,6 @@ frappe.ui.form.on("Shipstation Settings", {
 frappe.ui.form.on("Shipstation Option", {
     item_field: (frm, cdt, cdn) => {
         const row = locals[cdt][cdn];
-        row._ignore_links = true;
         var curr_value = row.item_field;
         if (row.item_field) {
             frappe.call({
@@ -125,6 +125,25 @@ frappe.ui.form.on("Shipstation Option", {
                 callback: r => {
                     if (r.message) {
                         frappe.model.set_value(cdt, cdn, "item_field_type", r.message);
+                    }
+                }
+            });
+        }
+    }
+});
+
+frappe.ui.form.on("Shipstation Item Custom Field", {
+    before_item_custom_fields_remove: (frm, cdt, cdn) => {
+        var deleted_row = frappe.get_doc(cdt, cdn);
+        if (deleted_row.item_field) {
+            frappe.call({
+                method: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.remove_item_field",
+                args: {
+                    "fieldname": deleted_row.item_field
+                },
+                callback: r => {
+                    if (r.message.status === 'Alert') {
+                        frappe.show_alert({ message: r.message.message, indicator: 'orange' });
                     }
                 }
             });

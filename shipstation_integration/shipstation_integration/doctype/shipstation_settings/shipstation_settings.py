@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2020, Parsimony LLC and contributors
 # For license information, please see license.txt
 
 import json
 from typing import List
 
-from httpx import HTTPError
-from shipstation import ShipStation
-
 import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils.nestedset import get_root_of
+from httpx import HTTPError
+from shipstation import ShipStation
 
 from shipstation_integration.items import create_item
 from shipstation_integration.orders import list_orders
@@ -24,22 +22,23 @@ class ShipstationSettings(Document):
 	def store_ids(self):
 		stores = json.loads(self.store_data)
 		stores = [json.loads(s) for s in stores]
-		return [s.get('storeId') for s in stores]
+		return [s.get("storeId") for s in stores]
 
 	@property
-	def active_warehouse_ids(self) -> List[str]:
+	def active_warehouse_ids(self) -> list[str]:
 		warehouse_ids = []
 
 		for warehouse in self.shipstation_warehouses:
-			warehouse_id = frappe.db.get_value("Warehouse",
-				warehouse.get("warehouse"), "shipstation_warehouse_id")
+			warehouse_id = frappe.db.get_value(
+				"Warehouse", warehouse.get("warehouse"), "shipstation_warehouse_id"
+			)
 			warehouse_ids.append(warehouse_id)
 
 		return warehouse_ids
 
 	def onload(self):
 		if self.carrier_data:
-			self.set_onload('carriers', self._carrier_data())
+			self.set_onload("carriers", self._carrier_data())
 
 	def validate(self):
 		self.validate_label_generation()
@@ -62,10 +61,10 @@ class ShipstationSettings(Document):
 
 	def client(self):
 		return ShipStation(
-			key=self.get_password('api_key'),
-			secret=self.get_password('api_secret'),
+			key=self.get_password("api_key"),
+			secret=self.get_password("api_secret"),
 			debug=False,
-			timeout=30
+			timeout=30,
 		)
 
 	def validate_label_generation(self):
@@ -99,9 +98,9 @@ class ShipstationSettings(Document):
 		for carrier in carriers:
 			carrier_dict = carrier._unstructure()
 			services = client.list_services(carrier.code)
-			carrier_dict['services'] = [s._unstructure() for s in services]
+			carrier_dict["services"] = [s._unstructure() for s in services]
 			packages = client.list_packages(carrier.code)
-			carrier_dict['packages'] = [p._unstructure() for p in packages]
+			carrier_dict["packages"] = [p._unstructure() for p in packages]
 			unstructured_carriers.append(carrier_dict)
 
 		self.carrier_data = json.dumps(unstructured_carriers)
@@ -116,11 +115,13 @@ class ShipstationSettings(Document):
 
 		if not frappe.db.exists("Warehouse", {"warehouse_name": "Shipstation Warehouses"}):
 			ss_warehouse_doc = frappe.new_doc("Warehouse")
-			ss_warehouse_doc.update({
-				"warehouse_name": "Shipstation Warehouses",
-				"parent_warehouse": root_warehouse,
-				"is_group": True
-			})
+			ss_warehouse_doc.update(
+				{
+					"warehouse_name": "Shipstation Warehouses",
+					"parent_warehouse": root_warehouse,
+					"is_group": True,
+				}
+			)
 			ss_warehouse_doc.insert()
 
 		parent_warehouse = frappe.get_doc("Warehouse", {"warehouse_name": "Shipstation Warehouses"})
@@ -128,15 +129,18 @@ class ShipstationSettings(Document):
 
 		for warehouse in warehouses:
 			if frappe.db.exists("Warehouse", {"shipstation_warehouse_id": warehouse.warehouse_id}):
-				warehouse_doc = frappe.get_doc("Warehouse",
-					{"shipstation_warehouse_id": warehouse.warehouse_id})
+				warehouse_doc = frappe.get_doc(
+					"Warehouse", {"shipstation_warehouse_id": warehouse.warehouse_id}
+				)
 			else:
 				warehouse_doc = frappe.new_doc("Warehouse")
-				warehouse_doc.update({
-					"shipstation_warehouse_id": warehouse.warehouse_id,
-					"warehouse_name": warehouse.warehouse_name,
-					"parent_warehouse": parent_warehouse.name
-				})
+				warehouse_doc.update(
+					{
+						"shipstation_warehouse_id": warehouse.warehouse_id,
+						"warehouse_name": warehouse.warehouse_name,
+						"parent_warehouse": parent_warehouse.name,
+					}
+				)
 				warehouse_doc.insert()
 
 			self.append("shipstation_warehouses", {"warehouse": warehouse_doc.name})
@@ -149,39 +153,50 @@ class ShipstationSettings(Document):
 			store_exists = False
 			for ss_store in self.shipstation_stores:
 				if store.store_id == ss_store.store_id:
-					ss_store.update({
-						"marketplace_name": store.marketplace_name,
-						"store_name": store.store_name
-					})
+					ss_store.update(
+						{
+							"marketplace_name": store.marketplace_name,
+							"store_name": store.store_name,
+						}
+					)
 					store_exists = True
 
 			if store_exists:
 				continue
 
 			if "Amazon" in store.marketplace_name:
-				self.append("shipstation_stores", {
-					"is_amazon_store": 1,
-					"amazon_marketplace": store.account_name,
-					"enable_orders": 1,
-					"store_id": store.store_id,
-					"marketplace_name": get_marketplace(id=store.account_name).sales_partner,
-					"store_name": store.store_name
-				})
+				self.append(
+					"shipstation_stores",
+					{
+						"is_amazon_store": 1,
+						"amazon_marketplace": store.account_name,
+						"enable_orders": 1,
+						"store_id": store.store_id,
+						"marketplace_name": get_marketplace(id=store.account_name).sales_partner,
+						"store_name": store.store_name,
+					},
+				)
 			elif "Shopify" in store.marketplace_name:
-				self.append("shipstation_stores", {
-					"is_shopify_store": 1,
-					"enable_orders": 1,
-					"store_id": store.store_id,
-					"marketplace_name": store.marketplace_name,
-					"store_name": store.store_name
-				})
+				self.append(
+					"shipstation_stores",
+					{
+						"is_shopify_store": 1,
+						"enable_orders": 1,
+						"store_id": store.store_id,
+						"marketplace_name": store.marketplace_name,
+						"store_name": store.store_name,
+					},
+				)
 			else:
-				self.append("shipstation_stores", {
-					"enable_orders": 1,
-					"store_id": store.store_id,
-					"marketplace_name": store.marketplace_name,
-					"store_name": store.store_name
-				})
+				self.append(
+					"shipstation_stores",
+					{
+						"enable_orders": 1,
+						"store_id": store.store_id,
+						"marketplace_name": store.marketplace_name,
+						"store_name": store.store_name,
+					},
+				)
 
 		return self
 
@@ -202,21 +217,21 @@ class ShipstationSettings(Document):
 
 	def get_carrier_services(self, carrier):
 		for ss_carrier in self._carrier_data():
-			if carrier in [ss_carrier['name'], ss_carrier['nickname']]:
-				return '\n'.join([s['name'] for s in ss_carrier['services']])
+			if carrier in [ss_carrier["name"], ss_carrier["nickname"]]:
+				return "\n".join([s["name"] for s in ss_carrier["services"]])
 
 	def get_codes(self, carrier, service, package):
-		_carrier, _service, _package = None, None, 'Package'
+		_carrier, _service, _package = None, None, "Package"
 		for ss_carrier in self._carrier_data():
-			if carrier in [ss_carrier.get('name'), ss_carrier.get('nickname')]:
-				_carrier = ss_carrier['code']
+			if carrier in [ss_carrier.get("name"), ss_carrier.get("nickname")]:
+				_carrier = ss_carrier["code"]
 
-				for serv in ss_carrier['services']:
-					if serv['name'] == service:
-						_service = serv['code']
+				for serv in ss_carrier["services"]:
+					if serv["name"] == service:
+						_service = serv["code"]
 
-				for pack in ss_carrier['packages']:
-					if pack['name'] == package:
-						_package = pack['code']
+				for pack in ss_carrier["packages"]:
+					if pack["name"] == package:
+						_package = pack["code"]
 
 		return _carrier, _service, _package

@@ -1,22 +1,22 @@
 from typing import TYPE_CHECKING, Optional, Union
 
-from shipstation.models import ShipStationItem, ShipStationOrderItem
-
 import frappe
 from frappe.utils import flt
+from shipstation.models import ShipStationItem, ShipStationOrderItem
 
 if TYPE_CHECKING:
 	from erpnext.stock.doctype.item.item import Item
-	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
-		ShipstationStore,
-	)
+
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
 		ShipstationSettings,
+	)
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
+		ShipstationStore,
 	)
 
 
 def create_item(
-	product: Union[ShipStationItem, ShipStationOrderItem],
+	product: ShipStationItem | ShipStationOrderItem,
 	settings: "ShipstationSettings",
 	store: Optional["ShipstationStore"] = None,
 ) -> str:
@@ -24,14 +24,14 @@ def create_item(
 	Create or update a Shipstation item, and setup item defaults.
 
 	Args:
-		product (shipstation.ShipStationItem | shipstation.ShipStationOrderItem):
-			The Shipstation item or order item document.
-		settings (ShipstationSettings, optional): A Shipstation Settings instance.
-		store (ShipstationStore, optional): The selected Shipstation store.
-			Defaults to None.
+	        product (shipstation.ShipStationItem | shipstation.ShipStationOrderItem):
+	                The Shipstation item or order item document.
+	        settings (ShipstationSettings, optional): A Shipstation Settings instance.
+	        store (ShipstationStore, optional): The selected Shipstation store.
+	                Defaults to None.
 
 	Returns:
-		str: The item code of the created or updated Shipstation item.
+	        str: The item code of the created or updated Shipstation item.
 	"""
 
 	item_name = product.name[:140]
@@ -51,9 +51,7 @@ def create_item(
 			weight = product.weight if hasattr(product, "weight") else frappe._dict()
 			if weight:
 				weight_per_unit = flt(weight.value) if weight else 1
-				weight_uom = (
-					weight.units.title() if weight and weight.units else "Ounce"
-				)
+				weight_uom = weight.units.title() if weight and weight.units else "Ounce"
 
 				if weight_uom == "Ounces":
 					# map Shipstation UOM to ERPNext UOM
@@ -79,16 +77,18 @@ def create_item(
 		item.disabled = False
 		item.add_comment(
 			comment_type="Edit",
-			text="re-enabled this item after a new order was fetched from Shipstation"
+			text="re-enabled this item after a new order was fetched from Shipstation",
 		)
 
 	# create item defaults, if missing
 	if store:
-		item.update({
-			"integration_doctype": "Shipstation Settings",
-			"integration_doc": store.parent,
-			"store": store.name,
-		})
+		item.update(
+			{
+				"integration_doctype": "Shipstation Settings",
+				"integration_doc": store.parent,
+				"store": store.name,
+			}
+		)
 
 		if store.company and not item.get("item_defaults"):
 			item.set(

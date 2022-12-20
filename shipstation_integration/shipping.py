@@ -3,22 +3,19 @@ import json
 from io import BytesIO
 from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional
 
-from httpx import HTTPError
-from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStationWeight
-
 import frappe
 from frappe import _
 from frappe.contacts.doctype.address.address import Address
 from frappe.utils import get_datetime, get_link_to_form, today
 from frappe.utils.file_manager import save_file
+from httpx import HTTPError
+from shipstation.models import ShipStationAddress, ShipStationOrder, ShipStationWeight
 
-from shipstation_integration.shipments import (
-	cancel_voided_shipments,
-	create_erpnext_shipment,
-)
+from shipstation_integration.shipments import cancel_voided_shipments, create_erpnext_shipment
 
 if TYPE_CHECKING:
 	from frappe.core.doctype.file.file import File
+
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
 		ShipstationSettings,
 	)
@@ -29,7 +26,7 @@ if TYPE_CHECKING:
 
 @frappe.whitelist()
 def update_carriers_and_stores():  # scheduled daily
-	settings_list: List["ShipstationSettings"] = frappe.get_list("Shipstation Settings")
+	settings_list: list["ShipstationSettings"] = frappe.get_list("Shipstation Settings")
 	for settings in settings_list:
 		settings_doc: "ShipstationSettings" = frappe.get_cached_doc(
 			"Shipstation Settings", settings.name
@@ -47,13 +44,11 @@ def create_shipping_label(doc: str, values: str):
 def create_shipping_label_folder():
 	if not frappe.db.get_value("File", "Home/Shipstation Labels"):
 		folder: "File" = frappe.new_doc("File")
-		folder.update(
-			{"file_name": "Shipstation Labels", "is_folder": True, "folder": "Home"}
-		)
+		folder.update({"file_name": "Shipstation Labels", "is_folder": True, "folder": "Home"})
 		folder.save()
 
 
-def _create_shipping_label(doc: str, values: str, user: str = str()):
+def _create_shipping_label(doc: str, values: str, user: str = ""):
 	if isinstance(doc, str):
 		doc: frappe._dict = frappe._dict(json.loads(doc))
 		values: frappe._dict = frappe._dict(json.loads(values))
@@ -62,16 +57,12 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 	if not settings_name:
 		frappe.throw(_("No Shipstation order reference found"))
 
-	settings: "ShipstationSettings" = frappe.get_cached_doc(
-		"Shipstation Settings", settings_name
-	)
+	settings: "ShipstationSettings" = frappe.get_cached_doc("Shipstation Settings", settings_name)
 
 	if not settings.enabled:
 		return
 
-	values.package = (
-		"package" if values.package.lower() == "package" else values.package
-	)
+	values.package = "package" if values.package.lower() == "package" else values.package
 
 	doc.carrier_service = values.service
 	doc.package_code = values.package
@@ -94,14 +85,10 @@ def _create_shipping_label(doc: str, values: str, user: str = str()):
 
 	update_carrier_code(doc, shipstation_order, settings)
 
-	if not shipstation_order.ship_date or shipstation_order.ship_date < get_datetime(
-		today()
-	):
+	if not shipstation_order.ship_date or shipstation_order.ship_date < get_datetime(today()):
 		shipstation_order.ship_date = get_datetime(doc.delivery_date or today())
 
-	shipstation_order.weight = ShipStationWeight(
-		value=values.gross_weight, units="pounds"
-	)
+	shipstation_order.weight = ShipStationWeight(value=values.gross_weight, units="pounds")
 
 	# generate and save the shipping label for the order
 	try:
@@ -148,7 +135,7 @@ def attach_shipping_label(pdf: BytesIO, doctype: str, name: str):
 	return file
 
 
-def process_error(response: Dict, message: str = str()) -> NoReturn:
+def process_error(response: dict, message: str = "") -> NoReturn:
 	if not message:
 		message = "There was an error processing the request. Please contact your administrator."
 	if isinstance(response, dict) and response.get("ExceptionMessage"):
@@ -166,14 +153,12 @@ def update_carrier_code(
 
 
 @frappe.whitelist()
-def get_shipstation_address(address: Address, person_name: str = str()):
+def get_shipstation_address(address: Address, person_name: str = ""):
 	if not isinstance(address, Address):
 		frappe.throw("An address object is required")
 
 	if not person_name and not address.address_title:
-		frappe.throw(
-			"Please edit this address to have either a person's name or address title."
-		)
+		frappe.throw("Please edit this address to have either a person's name or address title.")
 
 	name = person_name or address.address_title
 	company = address.address_title if person_name else None
@@ -211,14 +196,12 @@ def make_shipstation_order(doc: frappe._dict):
 @frappe.whitelist()
 def get_carrier_services(settings: str):
 	if settings:
-		shipstation_settings: "ShipstationSettings" = frappe.get_doc(
-			"Shipstation Settings", settings
-		)
+		shipstation_settings: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", settings)
 		return shipstation_settings._carrier_data()
 
 
 @frappe.whitelist()
-def get_shipstation_settings(doc: str) -> Optional[str]:
+def get_shipstation_settings(doc: str) -> str | None:
 	if isinstance(doc, str):
 		doc = frappe._dict(json.loads(doc))
 
@@ -243,10 +226,7 @@ def push_attachment_update(attachment: "File", user: str):
 def fetch_shipment(delivery_note: str):
 	delivery_note = frappe.get_doc("Delivery Note", delivery_note)
 
-	if (
-		delivery_note.integration_doctype == "Shipstation Settings"
-		and delivery_note.integration_doc
-	):
+	if delivery_note.integration_doctype == "Shipstation Settings" and delivery_note.integration_doc:
 		settings = [delivery_note.integration_doc]
 	else:
 		settings = frappe.get_all("Shipstation Settings", pluck="name")
@@ -262,13 +242,9 @@ def fetch_shipment(delivery_note: str):
 		}
 
 		try:
-			shipments: List["ShipStationOrder"] = client.list_shipments(
-				parameters=parameters
-			)
+			shipments: list["ShipStationOrder"] = client.list_shipments(parameters=parameters)
 		except Exception as e:
-			frappe.log_error(
-				title="Error while fetching Shipstation shipment", message=e
-			)
+			frappe.log_error(title="Error while fetching Shipstation shipment", message=e)
 			return
 
 		created_shipments = []
@@ -277,9 +253,7 @@ def fetch_shipment(delivery_note: str):
 			if not shipment:
 				continue
 
-			existing_shipments = frappe.get_all(
-				"Shipment", filters={"shipment_id": shipment.shipment_id}
-			)
+			existing_shipments = frappe.get_all("Shipment", filters={"shipment_id": shipment.shipment_id})
 
 			if existing_shipments:
 				continue
@@ -289,22 +263,14 @@ def fetch_shipment(delivery_note: str):
 			else:
 				store_id = shipment.advanced_options.store_id
 				store: "ShipstationStore" = next(
-					(
-						store
-						for store in sss_doc.shipstation_stores
-						if store.store_id == store_id
-					),
+					(store for store in sss_doc.shipstation_stores if store.store_id == store_id),
 					None,
 				)
 
 				delivery_note.db_set("shipstation_shipment_id", shipment.shipment_id)
 				shipment = create_erpnext_shipment(shipment, store)
 				if shipment:
-					created_shipments.append(
-						get_link_to_form(shipment.doctype, shipment.name)
-					)
+					created_shipments.append(get_link_to_form(shipment.doctype, shipment.name))
 
 		if created_shipments:
-			frappe.msgprint(
-				_("Created Shipment(s): {0}").format(", ".join(created_shipments))
-			)
+			frappe.msgprint(_("Created Shipment(s): {0}").format(", ".join(created_shipments)))

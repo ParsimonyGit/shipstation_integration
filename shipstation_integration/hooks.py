@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 from . import __version__ as app_version
 
 app_name = "shipstation_integration"
@@ -33,7 +31,7 @@ app_include_js = "/assets/js/shipstation_integration.min.js"
 
 doctype_js = {
 	"Delivery Note": "public/js/delivery_note.js",
-	"Sales Order": "public/js/sales_order.js"
+	"Sales Order": "public/js/sales_order.js",
 }
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -103,7 +101,7 @@ before_migrate = "shipstation_integration.setup.setup_custom_fields"
 scheduler_events = {
 	"hourly_long": [
 		"shipstation_integration.orders.list_orders",
-		"shipstation_integration.shipments.list_shipments"
+		"shipstation_integration.shipments.list_shipments",
 	]
 }
 

@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 import frappe
 from frappe.utils import flt, getdate
@@ -28,20 +28,6 @@ def list_orders(
 	settings: "ShipstationSettings" = None,
 	last_order_datetime: datetime.datetime = None,
 ):
-	"""
-	Fetch Shipstation orders and create Sales Orders.
-
-	By default, only orders from enabled Shipstation Settings and from the last day onwards
-	will be fetched. Optionally, a list of Shipstation Settings instances and a custom
-	start date can be passed.
-
-	Args:
-	        settings (ShipstationSettings, optional): The Shipstation account to use for
-	                fetching orders. Defaults to None.
-	        last_order_datetime (datetime.datetime, optional): The start date for fetching orders.
-	                Defaults to None.
-	"""
-
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	elif not isinstance(settings, list):
@@ -135,17 +121,6 @@ def validate_order(
 
 
 def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -> str | None:
-	"""
-	Create a Sales Order from a Shipstation order.
-
-	Args:
-	        order (ShipStationOrder): The Shipstation order.
-	        store (ShipstationStore): The Shipstation store to set order defaults.
-
-	Returns:
-	        (str, None): The ID of the created Sales Order. If no items are found, returns None.
-	"""
-
 	customer = create_customer(order)
 	so: "SalesOrder" = frappe.new_doc("Sales Order")
 	so.update(

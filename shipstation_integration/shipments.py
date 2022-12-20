@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 import frappe
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
@@ -31,20 +31,6 @@ def list_shipments(
 	settings: "ShipstationSettings" = None,
 	last_shipment_datetime: "datetime.datetime" = None,
 ):
-	"""
-	Fetch Shipstation shipments and create Sales Invoice and Delivery Note documents.
-
-	By default, only shipments from enabled Shipstation Settings and from the last day
-	onwards will be fetched. Optionally, a list of Shipstation Settings instances and
-	a custom start date can be passed.
-
-	Args:
-	        settings (ShipstationSettings, optional): The Shipstation account to use for
-	                fetching orders. Defaults to None.
-	        last_order_datetime (datetime.datetime, optional): The start date for fetching
-	                shipments. Defaults to None.
-	"""
-
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	elif not isinstance(settings, list):
@@ -107,17 +93,6 @@ def list_shipments(
 
 
 def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationStore"):
-	"""
-	Create a Delivery Note using shipment data from Shipstation
-
-	Assumptions:
-	        - Do not create Shipstation orders if it doesn't exist in Parsimony
-
-	Args:
-	        shipment (ShipStationOrder): The shipment data.
-	        store (ShipStationStore): The current active Shipstation store.
-	"""
-
 	sales_invoice = None
 	if store.create_sales_invoice:
 		sales_invoice = create_sales_invoice(shipment, store)

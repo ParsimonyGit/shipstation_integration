@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 import frappe
 from frappe.utils import flt
@@ -20,20 +20,6 @@ def create_item(
 	settings: "ShipstationSettings",
 	store: Optional["ShipstationStore"] = None,
 ) -> str:
-	"""
-	Create or update a Shipstation item, and setup item defaults.
-
-	Args:
-	        product (shipstation.ShipStationItem | shipstation.ShipStationOrderItem):
-	                The Shipstation item or order item document.
-	        settings (ShipstationSettings, optional): A Shipstation Settings instance.
-	        store (ShipstationStore, optional): The selected Shipstation store.
-	                Defaults to None.
-
-	Returns:
-	        str: The item code of the created or updated Shipstation item.
-	"""
-
 	item_name = product.name[:140]
 	if not product.sku:
 		item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})

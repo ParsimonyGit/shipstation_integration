@@ -19,7 +19,7 @@ def update_customer_details(
 ):
 	existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
-	email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
+	email_id, _ = parse_addr(existing_so_doc.amazon_customer)
 	if email_id:
 		contact = create_contact(order, email_id)
 		existing_so_doc.contact_person = contact.name
@@ -129,16 +129,16 @@ def create_customer(order: "ShipStationOrder"):
 	cust.save()
 	frappe.db.commit()
 
-	email_id, user_name = parse_addr(customer_name)
+	email_id, _ = parse_addr(customer_name)
 	if email_id:
 		customer_primary_contact = create_contact(order, email_id)
 		if customer_primary_contact:
 			cust.customer_primary_contact = customer_primary_contact.name
 
 	if order.ship_to.street1:
-		create_address(order.ship_to, customer_name, order.customer_email, "Shipping").name
+		create_address(order.ship_to, customer_name, order.customer_email, "Shipping")
 	if order.bill_to.street1:
-		create_address(order.bill_to, order.customer_username, order.customer_email, "Billing").name
+		create_address(order.bill_to, order.customer_username, order.customer_email, "Billing")
 
 	try:
 		cust.save()
@@ -169,13 +169,13 @@ def create_contact(order: "ShipStationOrder", customer_name: str):
 def get_billing_address(customer_name: str):
 	billing_address = frappe.db.sql(
 		"""
-            SELECT `tabAddress`.name
-            FROM `tabDynamic Link`, `tabAddress`
-            WHERE `tabDynamic Link`.link_doctype = 'Customer'
-            AND `tabDynamic Link`.link_name = %(customer_name)s
-            AND `tabAddress`.address_type = 'Billing'
-            LIMIT 1
-        """,
+			SELECT `tabAddress`.name
+			FROM `tabDynamic Link`, `tabAddress`
+			WHERE `tabDynamic Link`.link_doctype = 'Customer'
+			AND `tabDynamic Link`.link_name = %(customer_name)s
+			AND `tabAddress`.address_type = 'Billing'
+			LIMIT 1
+		""",
 		{"customer_name": customer_name},
 		as_dict=True,
 	)

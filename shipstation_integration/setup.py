@@ -41,7 +41,7 @@ def setup_shipstation():
 	setup_custom_fields()
 
 
-def create_customer_group(args=None):
+def create_customer_group():
 	if frappe.db.get_value("Customer Group", {"customer_group_name": "ShipStation"}):
 		return
 
@@ -51,7 +51,7 @@ def create_customer_group(args=None):
 	customer_group.save()
 
 
-def create_price_list(args=None):
+def create_price_list():
 	if frappe.db.get_value("Price List", {"price_list_name": "ShipStation"}):
 		return
 
@@ -61,7 +61,7 @@ def create_price_list(args=None):
 	price_list.save()
 
 
-def setup_custom_fields(args=None):
+def setup_custom_fields():
 	item_fields = [
 		# Integration section
 		dict(

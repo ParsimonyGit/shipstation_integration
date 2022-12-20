@@ -1,7 +1,7 @@
 import base64
 import json
 from io import BytesIO
-from typing import TYPE_CHECKING, Dict, List, NoReturn, Optional
+from typing import TYPE_CHECKING, NoReturn
 
 import frappe
 from frappe import _

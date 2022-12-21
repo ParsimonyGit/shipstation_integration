@@ -1,6 +1,0 @@
-{
-    "js/shipstation_integration.min.js": [
-        "templates/includes/carriers.html",
-        "public/js/shipping.js"
-    ]
-}

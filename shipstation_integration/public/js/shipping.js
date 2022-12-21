@@ -70,59 +70,58 @@ shipping.dialog = (frm) => {
   const options = shipping.carrier_options
     .map((a) => a.nickname || a.name)
     .join("\n");
-  const fields = [
-    { fieldname: "warnings", fieldtype: "HTML" },
-    { fieldname: "sb_label", fieldtype: "Section Break" },
-    {
-      fieldname: "ship_method_type",
-      fieldtype: "Select",
-      label: "Carrier",
-      options: options,
-      onchange: () => {
-        const values = dialog.get_values(); // skipcq: JS-0129
-        if (values.ship_method_type) {
-          const carrier = shipping.carrier_options.find(
-            (a) => (a.nickname || a.name) === values.ship_method_type
-          );
-          const packages = carrier.packages.map((a) => a.name).join("\n");
-          dialog.set_df_property("package", "options", packages); // skipcq: JS-0129
-          dialog.set_df_property("package", "read_only", 0); // skipcq: JS-0129
-          const services = carrier.services.map((a) => a.name).join("\n");
-          dialog.set_df_property("service", "options", services); // skipcq: JS-0129
-          dialog.set_df_property("service", "read_only", 0); // skipcq: JS-0129
-        }
-      },
-    },
-    {
-      fieldname: "service",
-      fieldtype: "Select",
-      label: "Service",
-      read_only: 1,
-    },
-    {
-      fieldname: "package",
-      fieldtype: "Select",
-      label: "Package Type",
-      read_only: 1,
-    },
-    { fieldname: "cb_label", fieldtype: "Column Break" },
-    {
-      fieldname: "gross_weight",
-      fieldtype: "Float",
-      label: "Gross Weight",
-      description: `Total Net Weight: ${frm.doc.total_net_weight}`,
-    },
-    {
-      fieldname: "total_packages",
-      fieldtype: "Int",
-      label: "Total Packages",
-      description: `Total number of items: ${frm.doc.total_qty}`,
-    },
-  ];
 
   const dialog = new frappe.ui.Dialog({
     title: __("Create and Attach Shipping Label"),
-    fields: fields,
+    fields: [
+      { fieldname: "warnings", fieldtype: "HTML" },
+      { fieldname: "sb_label", fieldtype: "Section Break" },
+      {
+        fieldname: "ship_method_type",
+        fieldtype: "Select",
+        label: "Carrier",
+        options: options,
+        onchange: () => {
+          const values = dialog.get_values();
+          if (values.ship_method_type) {
+            const carrier = shipping.carrier_options.find(
+              (a) => (a.nickname || a.name) === values.ship_method_type
+            );
+            const packages = carrier.packages.map((a) => a.name).join("\n");
+            dialog.set_df_property("package", "options", packages);
+            dialog.set_df_property("package", "read_only", 0);
+            const services = carrier.services.map((a) => a.name).join("\n");
+            dialog.set_df_property("service", "options", services);
+            dialog.set_df_property("service", "read_only", 0);
+          }
+        },
+      },
+      {
+        fieldname: "service",
+        fieldtype: "Select",
+        label: "Service",
+        read_only: 1,
+      },
+      {
+        fieldname: "package",
+        fieldtype: "Select",
+        label: "Package Type",
+        read_only: 1,
+      },
+      { fieldname: "cb_label", fieldtype: "Column Break" },
+      {
+        fieldname: "gross_weight",
+        fieldtype: "Float",
+        label: "Gross Weight",
+        description: `Total Net Weight: ${frm.doc.total_net_weight}`,
+      },
+      {
+        fieldname: "total_packages",
+        fieldtype: "Int",
+        label: "Total Packages",
+        description: `Total number of items: ${frm.doc.total_qty}`,
+      },
+    ],
     primary_action: () => {
       dialog.hide();
       shipping.create_shipping_label(frm, dialog.get_values());

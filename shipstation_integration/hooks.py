@@ -20,7 +20,7 @@ setup_wizard_stages = "shipstation_integration.setup.get_setup_stages"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/shipstation_integration/css/shipstation_integration.css"
-app_include_js = "/assets/js/shipstation_integration.min.js"
+app_include_js = ["shipstation_integration.bundle.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/shipstation_integration/css/shipstation_integration.css"

@@ -4,3 +4,4 @@
 *.swp
 tags
 shipstation_integration/docs/current
+shipstation_integration/public/dist

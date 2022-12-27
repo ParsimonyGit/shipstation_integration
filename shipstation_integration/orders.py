@@ -117,6 +117,13 @@ def validate_order(
 	):
 		return False
 
+	# Shipstation allows users to split orders: this generates new orders
+	# with the same marketplace order number; instead of importing these new
+	# split orders, we maintain a single record of the order and allow making
+	# multiple Delivery Notes and Shipments against that order
+	if order.advanced_options.merged_or_split and order.advanced_options.parent_id:
+		return False
+
 	# only create orders for warehouses defined in Shipstation Settings;
 	# if no warehouses are set, fetch everything
 	if (

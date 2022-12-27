@@ -41,7 +41,7 @@ def setup_shipstation():
 	setup_custom_fields()
 
 
-def create_customer_group(args=None):
+def create_customer_group():
 	if frappe.db.get_value("Customer Group", {"customer_group_name": "ShipStation"}):
 		return
 
@@ -51,7 +51,7 @@ def create_customer_group(args=None):
 	customer_group.save()
 
 
-def create_price_list(args=None):
+def create_price_list():
 	if frappe.db.get_value("Price List", {"price_list_name": "ShipStation"}):
 		return
 
@@ -61,21 +61,44 @@ def create_price_list(args=None):
 	price_list.save()
 
 
-def setup_custom_fields(args=None):
+def setup_custom_fields():
 	item_fields = [
 		# Integration section
-		dict(fieldname="sb_integration", label="Integration Details",
-			fieldtype="Section Break", insert_after="description", collapsible=1),
-		dict(fieldname="integration_doctype", label="Integration DocType",
-			fieldtype="Link", options="DocType", insert_after="sb_integration",
-			hidden=1, print_hide=1),
-		dict(fieldname="integration_doc", label="Integration Doc", fieldtype="Dynamic Link",
-			insert_after="integration_doctype", options="integration_doctype", read_only=1,
-			print_hide=1),
-		dict(fieldname="cb_integration", fieldtype="Column Break",
-			insert_after="integration_doc"),
-		dict(fieldname="store", label="Store", fieldtype="Data",
-			insert_after="cb_integration", read_only=1, print_hide=1, translatable=0),
+		dict(
+			fieldname="sb_integration",
+			label="Integration Details",
+			fieldtype="Section Break",
+			insert_after="description",
+			collapsible=1,
+		),
+		dict(
+			fieldname="integration_doctype",
+			label="Integration DocType",
+			fieldtype="Link",
+			options="DocType",
+			insert_after="sb_integration",
+			hidden=1,
+			print_hide=1,
+		),
+		dict(
+			fieldname="integration_doc",
+			label="Integration Doc",
+			fieldtype="Dynamic Link",
+			insert_after="integration_doctype",
+			options="integration_doctype",
+			read_only=1,
+			print_hide=1,
+		),
+		dict(fieldname="cb_integration", fieldtype="Column Break", insert_after="integration_doc"),
+		dict(
+			fieldname="store",
+			label="Store",
+			fieldtype="Data",
+			insert_after="cb_integration",
+			read_only=1,
+			print_hide=1,
+			translatable=0,
+		),
 	]
 
 	warehouse_fields = [
@@ -282,7 +305,7 @@ def setup_custom_fields(args=None):
 			label="Marketplace Order ID",
 			insert_after="marketplace",
 			translatable=False,
-		)
+		),
 	]
 
 	custom_fields = {
@@ -328,7 +351,7 @@ def setup_custom_fields(args=None):
 			property="label",
 			property_type="Text",
 			value="Weight (Pounds)",
-		)
+		),
 	]
 
 	print("Creating property setters for Shipstation")

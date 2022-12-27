@@ -1,10 +1,9 @@
 import datetime
-from typing import TYPE_CHECKING, Optional, Union
-
-from httpx import HTTPError
+from typing import TYPE_CHECKING, Union
 
 import frappe
 from frappe.utils import flt, getdate
+from httpx import HTTPError
 
 from shipstation_integration.customer import (
 	create_customer,
@@ -16,11 +15,12 @@ from shipstation_integration.items import create_item
 if TYPE_CHECKING:
 	from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
 	from shipstation.models import ShipStationOrder, ShipStationOrderItem
-	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
-		ShipstationStore,
-	)
+
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
 		ShipstationSettings,
+	)
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
+		ShipstationStore,
 	)
 
 
@@ -28,29 +28,13 @@ def list_orders(
 	settings: "ShipstationSettings" = None,
 	last_order_datetime: datetime.datetime = None,
 ):
-	"""
-	Fetch Shipstation orders and create Sales Orders.
-
-	By default, only orders from enabled Shipstation Settings and from the last day onwards
-	will be fetched. Optionally, a list of Shipstation Settings instances and a custom
-	start date can be passed.
-
-	Args:
-		settings (ShipstationSettings, optional): The Shipstation account to use for
-			fetching orders. Defaults to None.
-		last_order_datetime (datetime.datetime, optional): The start date for fetching orders.
-			Defaults to None.
-	"""
-
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	elif not isinstance(settings, list):
 		settings = [settings]
 
 	for sss in settings:
-		sss_doc: "ShipstationSettings" = frappe.get_doc(
-			"Shipstation Settings", sss.name
-		)
+		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
 		if not sss_doc.enabled:
 			continue
 
@@ -59,9 +43,7 @@ def list_orders(
 
 		if not last_order_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
-			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(
-				hours=24
-			)
+			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
@@ -74,18 +56,14 @@ def list_orders(
 				"modify_date_end": datetime.datetime.utcnow(),
 			}
 
-			update_parameter_hook = frappe.get_hooks(
-				"update_shipstation_list_order_parameters"
-			)
+			update_parameter_hook = frappe.get_hooks("update_shipstation_list_order_parameters")
 			if update_parameter_hook:
 				parameters = frappe.get_attr(update_parameter_hook[0])(parameters)
 
 			try:
 				orders = client.list_orders(parameters=parameters)
 			except HTTPError as e:
-				frappe.log_error(
-					title="Error while fetching Shipstation orders", message=e
-				)
+				frappe.log_error(title="Error while fetching Shipstation orders", message=e)
 				continue
 
 			order: "ShipStationOrder"
@@ -95,9 +73,7 @@ def list_orders(
 
 					process_order_hook = frappe.get_hooks("process_shipstation_order")
 					if process_order_hook:
-						should_create_order = frappe.get_attr(process_order_hook[0])(
-							order, store
-						)
+						should_create_order = frappe.get_attr(process_order_hook[0])(order, store)
 
 					if should_create_order:
 						create_erpnext_order(order, store)
@@ -112,9 +88,7 @@ def validate_order(
 		return False
 
 	# if an order already exists, skip
-	if frappe.db.get_value(
-		"Sales Order", {"shipstation_order_id": order.order_id, "docstatus": 1}
-	):
+	if frappe.db.get_value("Sales Order", {"shipstation_order_id": order.order_id, "docstatus": 1}):
 		return False
 
 	# only create orders for warehouses defined in Shipstation Settings;
@@ -146,20 +120,7 @@ def validate_order(
 	return True
 
 
-def create_erpnext_order(
-	order: "ShipStationOrder", store: "ShipstationStore"
-) -> Optional[str]:
-	"""
-	Create a Sales Order from a Shipstation order.
-
-	Args:
-		order (ShipStationOrder): The Shipstation order.
-		store (ShipstationStore): The Shipstation store to set order defaults.
-
-	Returns:
-		(str, None): The ID of the created Sales Order. If no items are found, returns None.
-	"""
-
+def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -> str | None:
 	customer = create_customer(order)
 	so: "SalesOrder" = frappe.new_doc("Sales Order")
 	so.update(

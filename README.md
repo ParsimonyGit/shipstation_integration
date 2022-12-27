@@ -22,6 +22,10 @@ bench get-app https://github.com/ParsimonyGit/shipstation_integration
 bench --site <site_name> install-app shipstation_integration
 ```
 
+## Contribution
+
+Contributions are welcome! Please see the [contribution guidelines](CONTRIBUTING.md) for more information.
+
 ## Dependencies
 
 - [ShipStation Python client](https://github.com/agritheory/shipstation-client) by [AgriTheory](https://github.com/agritheory)

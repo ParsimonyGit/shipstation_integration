@@ -1,29 +1,29 @@
 import datetime
-from typing import TYPE_CHECKING, Optional, Union
-
-from httpx import HTTPError
+from typing import TYPE_CHECKING, Optional
 
 import frappe
-from frappe.utils import getdate
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
 	make_delivery_note as make_delivery_from_invoice,
 )
 from erpnext.selling.doctype.sales_order.sales_order import (
-	make_sales_invoice,
 	make_delivery_note as make_delivery_from_order,
 )
+from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 from erpnext.stock.doctype.delivery_note.delivery_note import make_shipment
+from frappe.utils import getdate
+from httpx import HTTPError
 
 if TYPE_CHECKING:
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 	from erpnext.stock.doctype.delivery_note.delivery_note import DeliveryNote
 	from erpnext.stock.doctype.shipment.shipment import Shipment
 	from shipstation.models import ShipStationOrder
-	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
-		ShipstationStore,
-	)
+
 	from shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings import (
 		ShipstationSettings,
+	)
+	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
+		ShipstationStore,
 	)
 
 
@@ -31,29 +31,13 @@ def list_shipments(
 	settings: "ShipstationSettings" = None,
 	last_shipment_datetime: "datetime.datetime" = None,
 ):
-	"""
-	Fetch Shipstation shipments and create Sales Invoice and Delivery Note documents.
-
-	By default, only shipments from enabled Shipstation Settings and from the last day
-	onwards will be fetched. Optionally, a list of Shipstation Settings instances and
-	a custom start date can be passed.
-
-	Args:
-		settings (ShipstationSettings, optional): The Shipstation account to use for
-			fetching orders. Defaults to None.
-		last_order_datetime (datetime.datetime, optional): The start date for fetching
-			shipments. Defaults to None.
-	"""
-
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	elif not isinstance(settings, list):
 		settings = [settings]
 
 	for sss in settings:
-		sss_doc: "ShipstationSettings" = frappe.get_doc(
-			"Shipstation Settings", sss.name
-		)
+		sss_doc: "ShipstationSettings" = frappe.get_doc("Shipstation Settings", sss.name)
 		if not sss_doc.enabled:
 			continue
 
@@ -62,9 +46,7 @@ def list_shipments(
 
 		if not last_shipment_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
-			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(
-				hours=24
-			)
+			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
@@ -87,9 +69,7 @@ def list_shipments(
 			try:
 				shipments = client.list_shipments(parameters=parameters)
 			except HTTPError as e:
-				frappe.log_error(
-					title="Error while fetching Shipstation shipment", message=e
-				)
+				frappe.log_error(title="Error while fetching Shipstation shipment", message=e)
 				continue
 
 			shipment: Optional["ShipStationOrder"]
@@ -99,10 +79,7 @@ def list_shipments(
 					continue
 
 				# if a date filter is set in Shipstation Settings, don't create orders before that date
-				if (
-					sss_doc.since_date
-					and getdate(shipment.create_date) < sss_doc.since_date
-				):
+				if sss_doc.since_date and getdate(shipment.create_date) < sss_doc.since_date:
 					continue
 
 				if frappe.db.exists(
@@ -116,17 +93,6 @@ def list_shipments(
 
 
 def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationStore"):
-	"""
-	Create a Delivery Note using shipment data from Shipstation
-
-	Assumptions:
-		- Do not create Shipstation orders if it doesn't exist in Parsimony
-
-	Args:
-		shipment (ShipStationOrder): The shipment data.
-		store (ShipStationStore): The current active Shipstation store.
-	"""
-
 	sales_invoice = None
 	if store.create_sales_invoice:
 		sales_invoice = create_sales_invoice(shipment, store)
@@ -166,16 +132,12 @@ def cancel_voided_shipments(shipment: "ShipStationOrder"):
 
 
 def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"):
-	existing_si = frappe.get_value(
-		"Sales Invoice", {"shipstation_order_id": shipment.order_id}
-	)
+	existing_si = frappe.get_value("Sales Invoice", {"shipstation_order_id": shipment.order_id})
 
 	if existing_si:
 		return frappe.get_doc("Sales Invoice", existing_si)
 
-	so_name = frappe.get_value(
-		"Sales Order", {"shipstation_order_id": shipment.order_id}
-	)
+	so_name = frappe.get_value("Sales Order", {"shipstation_order_id": shipment.order_id})
 	if not so_name:
 		return
 
@@ -204,9 +166,7 @@ def create_delivery_note(
 	shipment: "ShipStationOrder", sales_invoice: Optional["SalesInvoice"] = None
 ):
 
-	existing_dn = frappe.get_value(
-		"Delivery Note", {"shipstation_order_id": shipment.order_id}
-	)
+	existing_dn = frappe.get_value("Delivery Note", {"shipstation_order_id": shipment.order_id})
 
 	if existing_dn:
 		return frappe.get_doc("Delivery Note", existing_dn)
@@ -214,9 +174,7 @@ def create_delivery_note(
 	if sales_invoice:
 		dn: "DeliveryNote" = make_delivery_from_invoice(sales_invoice.name)
 	else:
-		so_name = frappe.get_value(
-			"Sales Order", {"shipstation_order_id": shipment.order_id}
-		)
+		so_name = frappe.get_value("Sales Order", {"shipstation_order_id": shipment.order_id})
 		if not so_name:
 			return
 		dn: "DeliveryNote" = make_delivery_from_order(so_name)
@@ -269,9 +227,7 @@ def create_shipment(
 	if shipment.shipment_items:
 		description = ""
 		for count, shipment_item in enumerate(shipment.shipment_items, 1):
-			stock_uom = frappe.db.get_value(
-				"Item", {"item_name": shipment_item.name}, "stock_uom"
-			)
+			stock_uom = frappe.db.get_value("Item", {"item_name": shipment_item.name}, "stock_uom")
 			description += f"{count}. {shipment_item.name} - {shipment_item.quantity} {stock_uom}\n"
 		shipment_doc.update({"description_of_content": description})
 

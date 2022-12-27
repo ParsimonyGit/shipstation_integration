@@ -1,17 +1,12 @@
 import frappe
 from frappe.utils import flt, update_progress_bar
-from shipstation_integration.setup import setup_custom_fields
 
 
 def execute():
 	"""This patch needs to be executed manually since it needs to call the
 	Shipstation API multiple times, which can keep sites down for a long time."""
 
-	# setup_custom_fields()
-
-	shipstation_settings = frappe.get_all(
-		"Shipstation Settings", filters={"enabled": True}
-	)
+	shipstation_settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 
 	for settings in shipstation_settings:
 		settings_doc = frappe.get_doc("Shipstation Settings", settings.name)

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from httpx import HTTPError
 
 import frappe
-from frappe.utils import getdate
+from frappe.utils import flt, getdate
 
 from shipstation_integration.customer import (
 	create_customer,
@@ -200,15 +200,23 @@ def create_erpnext_order(
 	if process_order_items_hook:
 		order_items = frappe.get_attr(process_order_items_hook[0])(order_items)
 
+	discount_amount = 0.0
 	for item in order_items:
 		# skip the item if the quantity is 0 (item was refunded)
 		if item.quantity < 1:
 			continue
 
+		rate = flt(item.unit_price) if hasattr(item, "unit_price") else 0.0
+
+		# the only way to identify marketplace discounts via the Shipstation API is
+		# to find it using the `line_item_key` string
+		if item.line_item_key == "discount":
+			discount_amount += abs(rate * item.quantity)
+			continue
+
 		settings = frappe.get_doc("Shipstation Settings", store.parent)
 		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)
-		rate = item.unit_price if hasattr(item, "unit_price") else None
 		item_dict = {
 				"item_code": item_code,
 				"qty": item.quantity,
@@ -219,9 +227,11 @@ def create_erpnext_order(
 				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes,
 			}
+
 		options_import = frappe.get_all("Shipstation Option",
 			filters=dict(parent=store.parent),
 			fields=["shipstation_option_name", "item_field"])
+
 		for option in item.options:
 			# check to see if the option is in the Options Import table
 			option_import = next((x for x in options_import if x.shipstation_option_name == option.name), None)
@@ -265,6 +275,10 @@ def create_erpnext_order(
 				"cost_center": store.cost_center,
 			},
 		)
+
+	if discount_amount > 0:
+		so.apply_discount_on = "Grand Total"
+		so.discount_amount = discount_amount
 
 	so.save()
 

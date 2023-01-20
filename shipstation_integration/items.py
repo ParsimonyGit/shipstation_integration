@@ -97,7 +97,7 @@ def create_item(
 					{
 						"company": store.company,
 						"default_price_list": "ShipStation",
-						"default_warehouse": "",  # leave unset
+						"default_warehouse": store.warehouse,
 						"buying_cost_center": store.cost_center,
 						"selling_cost_center": store.cost_center,
 						"expense_account": store.expense_account,

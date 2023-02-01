@@ -32,8 +32,6 @@ def update_customer_details(
             "marketplace_order_id": order.order_number,
             "delivery_date": getdate(order.ship_date),
             "has_pii": True,
-            "integration_doctype": "Shipstation Settings",
-            "integration_doc": store.parent,
         }
     )
 

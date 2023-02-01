@@ -9,7 +9,8 @@ from frappe.utils import flt, getdate
 from shipstation_integration.customer import (
 	create_customer,
 	get_billing_address,
-	update_customer_details,
+	update_amazon_order,
+	update_shopify_order,
 )
 from shipstation_integration.items import create_item
 
@@ -138,15 +139,16 @@ def validate_order(
 
 	# allow other apps to run validations on Shipstation-Amazon or Shipstation-Shopify
 	# orders; if an order already exists, stop process flow
-	process_hook = None
 	if store.get("is_amazon_store") and store.get("amazon_seller_setup"):
 		process_hook = frappe.get_hooks("process_shipstation_amazon_order")
+		if process_hook:
+			frappe.get_attr(process_hook[0])(store, order, update_amazon_order)
+			return False
 	elif store.get("is_shopify_store") and store.get("shopify_store"):
 		process_hook = frappe.get_hooks("process_shipstation_shopify_order")
-
-	if process_hook:
-		frappe.get_attr(process_hook[0])(store, order, update_customer_details)
-		return False
+		if process_hook:
+			frappe.get_attr(process_hook[0])(store, order, update_shopify_order)
+			return False
 
 	return True
 

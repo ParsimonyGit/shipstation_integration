@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from httpx import HTTPError
 
@@ -139,16 +139,14 @@ def validate_order(
 	# allow other apps to run validations on Shipstation-Amazon or Shipstation-Shopify
 	# orders; if an order already exists, stop process flow
 	process_hook = None
-	if store.get("is_amazon_store"):
+	if store.get("is_amazon_store") and store.get("amazon_seller_setup"):
 		process_hook = frappe.get_hooks("process_shipstation_amazon_order")
-	elif store.get("is_shopify_store"):
+	elif store.get("is_shopify_store") and store.get("shopify_store"):
 		process_hook = frappe.get_hooks("process_shipstation_shopify_order")
 
 	if process_hook:
-		existing_order: Union["SalesOrder", bool] = frappe.get_attr(process_hook[0])(
-			store, order, update_customer_details
-		)
-		return not existing_order
+		frappe.get_attr(process_hook[0])(store, order, update_customer_details)
+		return False
 
 	return True
 

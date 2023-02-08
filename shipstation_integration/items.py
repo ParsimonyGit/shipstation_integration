@@ -5,6 +5,8 @@ from shipstation.models import ShipStationItem, ShipStationOrderItem
 import frappe
 from frappe.utils import flt
 
+from shipstation_integration.hook_events.item import get_item_alias
+
 if TYPE_CHECKING:
 	from erpnext.stock.doctype.item.item import Item
 	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
@@ -23,15 +25,10 @@ def create_item(
 	"""
 	Create or update a Shipstation item, and setup item defaults.
 
-	Args:
-		product (shipstation.ShipStationItem | shipstation.ShipStationOrderItem):
-			The Shipstation item or order item document.
-		settings (ShipstationSettings, optional): A Shipstation Settings instance.
-		store (ShipstationStore, optional): The selected Shipstation store.
-			Defaults to None.
-
-	Returns:
-		str: The item code of the created or updated Shipstation item.
+	:param product: The Shipstation item or order item document
+	:param settings: (optional) A Shipstation Settings instance
+	:param store: (optional) The selected Shipstation store, defaults to None
+	:return: The item code of the created or updated Shipstation item
 	"""
 
 	item_name = product.name[:140]
@@ -40,6 +37,9 @@ def create_item(
 	else:
 		item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
 		item_name = frappe.db.get_value("Item", item_code, "item_name") or item_name
+
+	if not item_code:
+		item_code = get_item_alias(product)
 
 	if item_code:
 		item: "Item" = frappe.get_doc("Item", item_code)

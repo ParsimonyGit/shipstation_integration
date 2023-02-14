@@ -31,15 +31,15 @@ def create_item(
 	:return: The item code of the created or updated Shipstation item
 	"""
 
-	item_name = product.name[:140]
-	if not product.sku:
-		item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
-	else:
-		item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
-		item_name = frappe.db.get_value("Item", item_code, "item_name") or item_name
+	item_code = get_item_alias(product)
+	item_name = frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
 
 	if not item_code:
-		item_code = get_item_alias(product)
+		if not product.sku:
+			item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
+		else:
+			item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
+			item_name = frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
 
 	if item_code:
 		item: "Item" = frappe.get_doc("Item", item_code)

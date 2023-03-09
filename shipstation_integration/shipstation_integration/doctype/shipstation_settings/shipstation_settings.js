@@ -21,11 +21,9 @@ frappe.ui.form.on("Shipstation Settings", {
         frm.set_query("expense_account", "shipstation_stores", company_query);
         frm.set_query("shipping_income_account", "shipstation_stores", company_query);
         frm.set_query("shipping_expense_account", "shipstation_stores", company_query);
-        frm.set_query("item_field", "options_import", function() {
-            return {
-                query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
-            };
-        });
+        frm.set_query("item_field", "options_import", () => ({
+            query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
+        }));
         // workaround for link validation on the item_field field
         frappe.meta.get_docfield("Shipstation Option", "item_field", frm.docname).ignore_link_validation = true;
     },
@@ -37,7 +35,7 @@ frappe.ui.form.on("Shipstation Settings", {
     refresh: frm => {
         frm.trigger("toggle_mandatory_table_fields");
         if (frm.doc.carrier_data) {
-            let wrapper = $(frm.fields_dict["carriers_html"].wrapper);
+            const wrapper = $(frm.fields_dict.carriers_html.wrapper);
             wrapper.html(frappe.render_template("carriers", { "carriers": frm.doc.__onload.carriers }));
         }
     },
@@ -115,7 +113,7 @@ frappe.ui.form.on("Shipstation Settings", {
 frappe.ui.form.on("Shipstation Option", {
     item_field: (frm, cdt, cdn) => {
         const row = locals[cdt][cdn];
-        var curr_value = row.item_field;
+        const curr_value = row.item_field;
         if (row.item_field) {
             frappe.call({
                 method: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_field_link_type",
@@ -134,7 +132,7 @@ frappe.ui.form.on("Shipstation Option", {
 
 frappe.ui.form.on("Shipstation Item Custom Field", {
     before_item_custom_fields_remove: (frm, cdt, cdn) => {
-        var deleted_row = frappe.get_doc(cdt, cdn);
+        const deleted_row = frappe.get_doc(cdt, cdn);
         if (deleted_row.item_field) {
             frappe.call({
                 method: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.remove_item_field",

@@ -5,6 +5,8 @@ from shipstation.models import ShipStationItem, ShipStationOrderItem
 import frappe
 from frappe.utils import flt
 
+from shipstation_integration.hook_events.item import get_item_alias
+
 if TYPE_CHECKING:
 	from erpnext.stock.doctype.item.item import Item
 	from shipstation_integration.shipstation_integration.doctype.shipstation_store.shipstation_store import (
@@ -23,23 +25,21 @@ def create_item(
 	"""
 	Create or update a Shipstation item, and setup item defaults.
 
-	Args:
-		product (shipstation.ShipStationItem | shipstation.ShipStationOrderItem):
-			The Shipstation item or order item document.
-		settings (ShipstationSettings, optional): A Shipstation Settings instance.
-		store (ShipstationStore, optional): The selected Shipstation store.
-			Defaults to None.
-
-	Returns:
-		str: The item code of the created or updated Shipstation item.
+	:param product: The Shipstation item or order item document
+	:param settings: (optional) A Shipstation Settings instance
+	:param store: (optional) The selected Shipstation store, defaults to None
+	:return: The item code of the created or updated Shipstation item
 	"""
 
-	item_name = product.name[:140]
-	if not product.sku:
-		item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
-	else:
-		item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
-		item_name = frappe.db.get_value("Item", item_code, "item_name") or item_name
+	item_code = get_item_alias(product)
+	item_name = frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
+
+	if not item_code:
+		if not product.sku:
+			item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
+		else:
+			item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
+			item_name = frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
 
 	if item_code:
 		item: "Item" = frappe.get_doc("Item", item_code)
@@ -97,7 +97,7 @@ def create_item(
 					{
 						"company": store.company,
 						"default_price_list": "ShipStation",
-						"default_warehouse": "",  # leave unset
+						"default_warehouse": store.warehouse,
 						"buying_cost_center": store.cost_center,
 						"selling_cost_center": store.cost_center,
 						"expense_account": store.expense_account,

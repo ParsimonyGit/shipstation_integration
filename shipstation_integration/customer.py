@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     )
 
 
-def update_customer_details(
+def update_amazon_order(
     existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"
 ):
     existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
@@ -32,8 +32,6 @@ def update_customer_details(
             "marketplace_order_id": order.order_number,
             "delivery_date": getdate(order.ship_date),
             "has_pii": True,
-            "integration_doctype": "Shipstation Settings",
-            "integration_doc": store.parent,
         }
     )
 
@@ -72,6 +70,27 @@ def update_customer_details(
 
     existing_so_doc.flags.ignore_validate_update_after_submit = True
     existing_so_doc.run_method("set_customer_address")
+    existing_so_doc.save()
+    return existing_so_doc
+
+
+def update_shopify_order(
+    existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"
+):
+    existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
+    existing_so_doc.update(
+        {
+            "shipstation_order_id": order.order_id,
+            "shipstation_store_name": store.store_name,
+            "shipstation_customer_notes": getattr(order, "customer_notes", None),
+            "shipstation_internal_notes": getattr(order, "internal_notes", None),
+            "marketplace_order_id": order.order_number,
+            "delivery_date": getdate(order.ship_date),
+            "has_pii": True,
+        }
+    )
+
+    existing_so_doc.flags.ignore_validate_update_after_submit = True
     existing_so_doc.save()
     return existing_so_doc
 

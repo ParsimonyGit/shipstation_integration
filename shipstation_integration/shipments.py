@@ -105,14 +105,15 @@ def list_shipments(
 				):
 					continue
 
-				if frappe.db.exists(
-					"Delivery Note",
-					{"docstatus": 1, "shipstation_order_id": shipment.order_id},
-				):
-					if shipment.voided:
+				if shipment.voided:
+					if frappe.db.exists(
+						"Delivery Note",
+						{"docstatus": 1, "shipstation_order_id": shipment.order_id},
+					):
 						cancel_voided_shipments(shipment)
-				else:
-					create_erpnext_shipment(shipment, store)
+					continue
+
+				create_erpnext_shipment(shipment, store)
 
 
 def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationStore"):
@@ -143,21 +144,21 @@ def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationSto
 
 
 def cancel_voided_shipments(shipment: "ShipStationOrder"):
-	existing_shipment = frappe.db.get_value(
+	existing_shipment = frappe.get_value(
 		"Shipment",
 		{"docstatus": 1, "shipment_id": shipment.shipment_id},
 	)
 	if existing_shipment:
 		frappe.get_doc("Shipment", existing_shipment).cancel()
 
-	existing_dn = frappe.db.get_value(
+	existing_dn = frappe.get_value(
 		"Delivery Note",
 		{"docstatus": 1, "shipstation_shipment_id": shipment.shipment_id},
 	)
 	if existing_dn:
 		frappe.get_doc("Delivery Note", existing_dn).cancel()
 
-	existing_si = frappe.db.get_value(
+	existing_si = frappe.get_value(
 		"Sales Invoice",
 		{"docstatus": 1, "shipstation_shipment_id": shipment.shipment_id},
 	)
@@ -167,14 +168,14 @@ def cancel_voided_shipments(shipment: "ShipStationOrder"):
 
 def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"):
 	existing_si = frappe.get_value(
-		"Sales Invoice", {"shipstation_order_id": shipment.order_id}
+		"Sales Invoice", {"docstatus": 1, "shipstation_order_id": shipment.order_id}
 	)
 
 	if existing_si:
 		return frappe.get_doc("Sales Invoice", existing_si)
 
 	so_name = frappe.get_value(
-		"Sales Order", {"shipstation_order_id": shipment.order_id}
+		"Sales Order", {"docstatus": 1, "shipstation_order_id": shipment.order_id}
 	)
 	if not so_name:
 		return
@@ -203,9 +204,8 @@ def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"
 def create_delivery_note(
 	shipment: "ShipStationOrder", sales_invoice: Optional["SalesInvoice"] = None
 ):
-
 	existing_dn = frappe.get_value(
-		"Delivery Note", {"shipstation_order_id": shipment.order_id}
+		"Delivery Note", {"docstatus": 1, "shipstation_order_id": shipment.order_id}
 	)
 
 	if existing_dn:
@@ -215,7 +215,7 @@ def create_delivery_note(
 		dn: "DeliveryNote" = make_delivery_from_invoice(sales_invoice.name)
 	else:
 		so_name = frappe.get_value(
-			"Sales Order", {"shipstation_order_id": shipment.order_id}
+			"Sales Order", {"docstatus": 1, "shipstation_order_id": shipment.order_id}
 		)
 		if not so_name:
 			return
@@ -237,6 +237,14 @@ def create_shipment(
 	store: "ShipstationStore",
 	delivery_note: Optional["DeliveryNote"] = None,
 ):
+	existing_shipment = frappe.get_value(
+		"Shipment", {"docstatus": 1, "shipment_id": shipment.shipment_id}
+	)
+
+	if existing_shipment:
+		shipment_doc: "Shipment" = frappe.get_doc("Shipment", existing_shipment)
+		return shipment_doc
+
 	if delivery_note:
 		shipment_doc: "Shipment" = make_shipment(delivery_note.name)
 	else:
@@ -269,7 +277,7 @@ def create_shipment(
 	if shipment.shipment_items:
 		description = ""
 		for count, shipment_item in enumerate(shipment.shipment_items, 1):
-			stock_uom = frappe.db.get_value(
+			stock_uom = frappe.get_value(
 				"Item", {"item_name": shipment_item.name}, "stock_uom"
 			)
 			description += f"{count}. {shipment_item.name} - {shipment_item.quantity} {stock_uom}\n"

@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "autoname": "format:{fieldname}",
+ "creation": "2023-03-09 10:18:10.691994",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "fieldname",
+  "label"
+ ],
+ "fields": [
+  {
+   "fieldname": "fieldname",
+   "fieldtype": "Data",
+   "label": "Field Name",
+   "unique": 1
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label"
+  }
+ ],
+ "in_create": 1,
+ "is_virtual": 1,
+ "links": [],
+ "modified": "2023-03-09 12:00:57.772150",
+ "modified_by": "Administrator",
+ "module": "Shipstation Integration",
+ "name": "Shipstation Item Field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "role": "System Manager"
+  }
+ ],
+ "read_only": 1,
+ "search_fields": "fieldname,label",
+ "sort_field": "fieldname",
+ "sort_order": "DESC",
+ "title_field": "label"
+}

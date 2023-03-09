@@ -22,7 +22,7 @@ frappe.ui.form.on("Shipstation Settings", {
         frm.set_query("shipping_income_account", "shipstation_stores", company_query);
         frm.set_query("shipping_expense_account", "shipstation_stores", company_query);
         frm.set_query("item_field", "options_import", () => ({
-            query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_fields"
+            query: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.item_fields_query"
         }));
         // workaround for link validation on the item_field field
         frappe.meta.get_docfield("Shipstation Option", "item_field", frm.docname).ignore_link_validation = true;
@@ -108,26 +108,6 @@ frappe.ui.form.on("Shipstation Settings", {
         frm.fields_dict.shipstation_stores.grid.toggle_reqd("expense_account", !frm.is_new());
     }
 
-});
-
-frappe.ui.form.on("Shipstation Option", {
-    item_field: (frm, cdt, cdn) => {
-        const row = locals[cdt][cdn];
-        const curr_value = row.item_field;
-        if (row.item_field) {
-            frappe.call({
-                method: "shipstation_integration.shipstation_integration.doctype.shipstation_settings.shipstation_settings.get_item_field_link_type",
-                args: {
-                    "fieldname": curr_value
-                },
-                callback: r => {
-                    if (r.message) {
-                        frappe.model.set_value(cdt, cdn, "item_field_type", r.message);
-                    }
-                }
-            });
-        }
-    }
 });
 
 frappe.ui.form.on("Shipstation Item Custom Field", {

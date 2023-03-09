@@ -17,6 +17,7 @@ from shipstation_integration.items import create_item
 from shipstation_integration.orders import list_orders
 from shipstation_integration.shipments import list_shipments
 from shipstation_integration.utils import get_marketplace
+from shipstation_integration.shipstation_integration.doctype.shipstation_item_field.shipstation_item_field import get_item_fields
 
 
 class ShipstationSettings(Document):
@@ -272,17 +273,14 @@ class ShipstationSettings(Document):
 					frappe.clear_cache(doctype=dt)
 					frappe.db.updatedb(dt)
 		
-				
+
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def get_item_fields(doctype, txt, searchfield, start, page_len, filters):
-	fields = frappe.get_meta("Sales Order Item").fields
-	fields = [[f.fieldname, f.label] for f in fields if f.fieldtype in ["Data", "Text", "Small Text", "Link", "Select"]]
-	if txt:
-		return [f for f in fields if txt.lower() in f[0].lower() or txt.lower() in f[1].lower()]
-	else:
-		return fields
+def item_fields_query(doctype, txt, searchfield, start, page_len, filters):
+	field_list = [[f['fieldname'], f['label']] for f in get_item_fields(txt)]
+	return field_list
+
 
 @frappe.whitelist()
 def get_item_field_link_type(fieldname):

@@ -8,8 +8,7 @@
  "field_order": [
   "shipstation_option_name",
   "column_break",
-  "item_field",
-  "item_field_type"
+  "item_field"
  ],
  "fields": [
   {
@@ -20,29 +19,21 @@
    "reqd": 1
   },
   {
-   "fetch_from": "item_field.fieldname",
-   "fieldname": "item_field",
-   "fieldtype": "Dynamic Link",
-   "in_list_view": 1,
-   "label": "Item Field",
-   "options": "item_field_type"
-  },
-  {
-   "default": "DocField",
-   "fieldname": "item_field_type",
-   "fieldtype": "Link",
-   "label": "Item Field Type",
-   "options": "DocType"
-  },
-  {
    "fieldname": "column_break",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_field",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Field",
+   "options": "Shipstation Item Field"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2022-12-09 17:26:44.554178",
+ "modified": "2023-03-09 12:03:49.961605",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Option",

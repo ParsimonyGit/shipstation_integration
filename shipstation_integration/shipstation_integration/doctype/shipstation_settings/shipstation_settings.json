@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "autoname": "Prompt",
  "creation": "2019-12-10 11:54:44.442858",
  "doctype": "DocType",
@@ -23,6 +24,11 @@
   "reset_warehouses",
   "sb_stores",
   "shipstation_stores",
+  "metadata_import_section",
+  "shipstation_options",
+  "define_custom_fields_for_items",
+  "item_custom_fields",
+  "update_order_item_custom_fields",
   "sb_carriers",
   "carrier_data",
   "carriers_html"
@@ -154,13 +160,45 @@
    "fieldname": "reset_warehouses",
    "fieldtype": "Button",
    "label": "Reset"
+  },
+  {
+   "fieldname": "metadata_import_section",
+   "fieldtype": "Section Break",
+   "label": "Metadata Import"
+  },
+  {
+   "fieldname": "shipstation_options",
+   "fieldtype": "Table",
+   "label": "Shipstation Options",
+   "options": "Shipstation Option"
+  },
+  {
+   "depends_on": "eval:doc.define_custom_fields_for_items",
+   "fieldname": "item_custom_fields",
+   "fieldtype": "Table",
+   "label": "Item Custom Fields",
+   "options": "Shipstation Item Custom Field"
+  },
+  {
+   "default": "0",
+   "fieldname": "define_custom_fields_for_items",
+   "fieldtype": "Check",
+   "label": "Define Custom Fields for Items"
+  },
+  {
+   "depends_on": "eval:doc.define_custom_fields_for_items",
+   "fieldname": "update_order_item_custom_fields",
+   "fieldtype": "Button",
+   "label": "Create/Update Custom Fields"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2021-11-24 05:30:10.617590",
+ "links": [],
+ "modified": "2023-03-22 11:18:14.318371",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",
+ "naming_rule": "Set by user",
  "owner": "Administrator",
  "permissions": [
   {
@@ -201,5 +239,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_views": 1
 }

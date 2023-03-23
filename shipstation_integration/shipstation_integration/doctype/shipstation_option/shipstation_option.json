@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-03-22 09:21:18.362079",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "shipsation_option_name",
+  "column_break_lcx0j",
+  "item_field"
+ ],
+ "fields": [
+  {
+   "fieldname": "shipsation_option_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Shipsation Option Name"
+  },
+  {
+   "fieldname": "item_field",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Field",
+   "options": "Shipstation Item Field"
+  },
+  {
+   "fieldname": "column_break_lcx0j",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-03-22 16:09:03.869307",
+ "modified_by": "Administrator",
+ "module": "Shipstation Integration",
+ "name": "Shipstation Option",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -50,6 +50,9 @@ class ShipstationSettings(Document):
 		self.update_carriers_and_stores()
 		self.update_warehouses()
 
+	def on_update(self):
+		self.update_order_item_custom_fields()
+
 	@frappe.whitelist()
 	def get_orders(self):
 		list_orders(self)
@@ -234,3 +237,66 @@ class ShipstationSettings(Document):
 						_package = pack["code"]
 
 		return _carrier, _service, _package
+
+	# create custom fields on the Sales Order Item doctype from the item_custom_fields table (for storing Shipstation metadata)
+	@frappe.whitelist()
+	def update_order_item_custom_fields(self):
+		# first, create any new custom fields
+		item_custom_fields = self.item_custom_fields
+		insert_after = "shipstation_item_notes"
+		item_doctypes = ["Delivery Note Item", "Sales Order Item", "Sales Invoice Item"]
+		for field in item_custom_fields:
+			field_def = {
+				"insert_after": insert_after,
+				"label": field.label,
+				"fieldtype": field.fieldtype,
+				"fieldname": field.fieldname,
+				"length": field.length,
+				"reqd": field.reqd,
+				"hidden": field.hidden,
+				"read_only": field.read_only,
+				"options": field.options,
+				"default": field.default,
+				"fetch_from": field.fetch_from,
+				"fetch_if_empty": field.fetch_if_empty
+			}
+			for dt in item_doctypes:
+				if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
+					custom_field = frappe.new_doc("Custom Field")
+					custom_field.dt = dt
+					custom_field.update(field_def)
+					custom_field.insert()
+				else:
+					custom_field = frappe.get_doc("Custom Field", {"dt": dt, "fieldname": field.fieldname})
+					custom_field.update(field_def)
+					custom_field.save()
+				if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
+					insert_after = field.fieldname
+				frappe.clear_cache(doctype=dt)
+				frappe.db.updatedb(dt)
+		# delete any remove custom fields
+		removed_item_custom_fields = frappe.flags.removed_item_custom_fields or []
+		if removed_item_custom_fields:
+			# make sure that the removed field is not in the item_custom_fields variable
+			removed_item_custom_fields = [field for field in removed_item_custom_fields if not field in [f.fieldname for f in item_custom_fields]]
+			for field in removed_item_custom_fields:
+				for dt in item_doctypes:
+					if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field}):
+						frappe.delete_doc("Custom Field", {"dt": dt, "fieldname": field})
+					frappe.clear_cache(doctype=dt)
+					frappe.db.updatedb(dt)
+
+@frappe.whitelist()
+def get_item_field_link_type(fieldname):
+	# check if the field is a custom field
+	if frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": fieldname}):
+		return "Custom Field"
+	else:
+		return "DocField"
+
+@frappe.whitelist()
+def remove_item_field(fieldname):
+	frappe.flags.removed_item_custom_fields = frappe.flags.removed_item_custom_fields or []
+	if fieldname not in frappe.flags.removed_item_custom_fields:
+		frappe.flags.removed_item_custom_fields.append(fieldname)
+	return {'status': 'Alert', 'message': 'Item field ' + fieldname + ' will be deleted on save.'}

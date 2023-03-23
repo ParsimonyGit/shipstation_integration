@@ -106,6 +106,14 @@ frappe.ui.form.on("Shipstation Settings", {
     frm.save();
   },
 
+  update_order_item_custom_fields: frm => {
+    frm.call({
+        doc: frm.doc,
+        method: "update_order_item_custom_fields",
+        freeze: true
+    })
+  },
+
   toggle_mandatory_table_fields: (frm) => {
     frm.fields_dict.shipstation_stores.grid.toggle_reqd(
       "company",

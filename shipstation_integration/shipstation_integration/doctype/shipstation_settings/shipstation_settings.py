@@ -50,9 +50,6 @@ class ShipstationSettings(Document):
 		self.update_carriers_and_stores()
 		self.update_warehouses()
 
-	def on_update(self):
-		self.update_order_item_custom_fields()
-
 	@frappe.whitelist()
 	def get_orders(self):
 		list_orders(self)
@@ -240,7 +237,7 @@ class ShipstationSettings(Document):
 
 	# create custom fields on the Sales Order Item doctype from the item_custom_fields table (for storing Shipstation metadata)
 	@frappe.whitelist()
-	def update_order_item_custom_fields(self):
+	def update_order_item_custom_fields(self, removed_item_custom_fields=[]):
 		# first, create any new custom fields
 		item_custom_fields = self.item_custom_fields
 		insert_after = "shipstation_item_notes"
@@ -274,15 +271,14 @@ class ShipstationSettings(Document):
 					insert_after = field.fieldname
 				frappe.clear_cache(doctype=dt)
 				frappe.db.updatedb(dt)
-		# delete any remove custom fields
-		removed_item_custom_fields = frappe.flags.removed_item_custom_fields or []
+		# delete any removed custom fields
 		if removed_item_custom_fields:
 			# make sure that the removed field is not in the item_custom_fields variable
 			removed_item_custom_fields = [field for field in removed_item_custom_fields if not field in [f.fieldname for f in item_custom_fields]]
-			for field in removed_item_custom_fields:
+			for fieldname in removed_item_custom_fields:
 				for dt in item_doctypes:
-					if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field}):
-						frappe.delete_doc("Custom Field", {"dt": dt, "fieldname": field})
+					if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": fieldname}):
+						frappe.db.delete("Custom Field", {"dt": dt, "fieldname": fieldname})
 					frappe.clear_cache(doctype=dt)
 					frappe.db.updatedb(dt)
 

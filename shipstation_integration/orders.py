@@ -43,12 +43,11 @@ def list_orders(
 
 		if not last_order_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
-			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
-
+			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=sss_doc.get("hours_to_fetch", 24))
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
 			if not store.enable_orders:
-				continue
+				continuelist_orders
 
 			parameters = {
 				"store_id": store.store_id,
@@ -70,7 +69,6 @@ def list_orders(
 			for order in orders:
 				if validate_order(sss_doc, order, store):
 					should_create_order = True
-
 					process_order_hook = frappe.get_hooks("process_shipstation_order")
 					if process_order_hook:
 						should_create_order = frappe.get_attr(process_order_hook[0])(order, store)
@@ -177,9 +175,7 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 		settings = frappe.get_doc("Shipstation Settings", store.parent)
 		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)
-		so.append(
-			"items",
-			{
+		item_dict = {
 				"item_code": item_code,
 				"qty": item.quantity,
 				"uom": frappe.db.get_single_value("Stock Settings", "stock_uom"),
@@ -188,8 +184,26 @@ def create_erpnext_order(order: "ShipStationOrder", store: "ShipstationStore") -
 				"warehouse": store.warehouse,
 				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes,
-			},
-		)
+			}
+
+		options_import = frappe.get_all("Shipstation Option",
+			filters=dict(parent=store.parent),
+			fields=["shipstation_option_name", "item_field"])
+
+		for option in item.options:
+			# check to see if the option is in the Options Import table
+			option_import = next((x for x in options_import if x.shipstation_option_name == option.name), None)
+			if option_import:
+				if option_import.item_field:
+					item_dict[option_import.item_field] = option.value
+			else:
+				# if the option name is not in the Options Import table, add it
+				settings.append("shipstation_options", {
+					"shipstation_option_name": option.name
+				})
+				settings.save()
+
+		so.append("items", item_dict)
 
 	if not so.get("items"):
 		return

@@ -47,7 +47,7 @@ def list_orders(
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
 			if not store.enable_orders:
-				continuelist_orders
+				continue
 
 			parameters = {
 				"store_id": store.store_id,

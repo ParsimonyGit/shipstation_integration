@@ -281,18 +281,3 @@ class ShipstationSettings(Document):
 						frappe.db.delete("Custom Field", {"dt": dt, "fieldname": fieldname})
 					frappe.clear_cache(doctype=dt)
 					frappe.db.updatedb(dt)
-
-@frappe.whitelist()
-def get_item_field_link_type(fieldname):
-	# check if the field is a custom field
-	if frappe.db.exists("Custom Field", {"dt": "Sales Order Item", "fieldname": fieldname}):
-		return "Custom Field"
-	else:
-		return "DocField"
-
-@frappe.whitelist()
-def remove_item_field(fieldname):
-	frappe.flags.removed_item_custom_fields = frappe.flags.removed_item_custom_fields or []
-	if fieldname not in frappe.flags.removed_item_custom_fields:
-		frappe.flags.removed_item_custom_fields.append(fieldname)
-	return {'status': 'Alert', 'message': 'Item field ' + fieldname + ' will be deleted on save.'}

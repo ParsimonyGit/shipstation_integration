@@ -13,8 +13,9 @@ function company_query(frm, cdt, cdn) {
 
 function set_item_field_options(frm) {
   let options_arr = [];
+  // delete the "Sales Order Item" doctype meta from locals, to force a reload of the field list
   delete locals.DocType['Sales Order Item'];
-  // This loads the "Sales Order Item" doctype meta into locals
+  // loads the "Sales Order Item" doctype meta into locals
   frappe.model.with_doctype("Sales Order Item", () => {
     const fieldlist = frappe.get_meta("Sales Order Item").fields;
     // This filters for "Data", "Text", "Small Text", "Link", and "Select."
@@ -24,6 +25,10 @@ function set_item_field_options(frm) {
     // This maps fieldname and value.
     options_arr = filtered_fieldlist.map((field) => {
       return { value: field.fieldname, label: field.label };
+    });
+    // This alphanumerically sorts the array by label.
+    options_arr = options_arr.sort((a, b) => {
+      return a.label.localeCompare(b.label);
     });
     // This updates the individual row's "item_field" field.
     frm.fields_dict.shipstation_options.grid.update_docfield_property("item_field", "options", options_arr);
@@ -182,15 +187,8 @@ frappe.ui.form.on("Shipstation Settings", {
   },
 });
 
-frappe.ui.form.on("Shipstation Option", {
-  form_render: (frm) => {
-    // This populates the options array on the item_field select field.
-    set_custom_fields(frm);
-  },
-});
-
 frappe.ui.form.on("Shipstation Item Custom Field", {
-  before_item_custom_fields_remove: (cdt, cdn) => {
+  before_item_custom_fields_remove: (frm, cdt, cdn) => {
     const deleted_row = frappe.get_doc(cdt, cdn);
     if (deleted_row.fieldname) {
       locals.removed_item_custom_fields = locals.removed_item_custom_fields || [];

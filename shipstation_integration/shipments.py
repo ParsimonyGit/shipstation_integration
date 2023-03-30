@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from httpx import HTTPError
 
@@ -38,11 +38,8 @@ def list_shipments(
 	onwards will be fetched. Optionally, a list of Shipstation Settings instances and
 	a custom start date can be passed.
 
-	Args:
-		settings (ShipstationSettings, optional): The Shipstation account to use for
-			fetching orders. Defaults to None.
-		last_order_datetime (datetime.datetime, optional): The start date for fetching
-			shipments. Defaults to None.
+	:param settings: The Shipstation account to use for fetching orders. Defaults to None.
+	:param last_order_datetime: The start date for fetching shipments. Defaults to None.
 	"""
 
 	if not settings:
@@ -121,11 +118,10 @@ def create_erpnext_shipment(shipment: "ShipStationOrder", store: "ShipstationSto
 	Create a Delivery Note using shipment data from Shipstation
 
 	Assumptions:
-		- Do not create Shipstation orders if it doesn't exist in Parsimony
+	- Do not create Shipstation orders if it doesn't exist in Parsimony
 
-	Args:
-		shipment (ShipStationOrder): The shipment data.
-		store (ShipStationStore): The current active Shipstation store.
+	:param shipment: The shipment data.
+	:param store: The current active Shipstation store.
 	"""
 
 	sales_invoice = None
@@ -237,12 +233,18 @@ def create_shipment(
 	store: "ShipstationStore",
 	delivery_note: Optional["DeliveryNote"] = None,
 ):
-	existing_shipment = frappe.get_value(
-		"Shipment", {"docstatus": 1, "shipment_id": shipment.shipment_id}
+	existing_shipment = frappe.get_all(
+		"Shipment",
+		filters={"docstatus": 1},
+		or_filters={
+			"shipment_id": shipment.shipment_id,
+			"shipstation_order_id": shipment.order_id,
+		},
+		pluck="name",
 	)
 
 	if existing_shipment:
-		shipment_doc: "Shipment" = frappe.get_doc("Shipment", existing_shipment)
+		shipment_doc: "Shipment" = frappe.get_doc("Shipment", existing_shipment[0])
 		return shipment_doc
 
 	if delivery_note:
@@ -250,11 +252,17 @@ def create_shipment(
 	else:
 		shipment_deliveries = frappe.get_all(
 			"Delivery Note",
-			filters={"shipstation_shipment_id": shipment.shipment_id},
+			filters={"docstatus": 1},
+			or_filters={
+				"shipstation_order_id": shipment.order_id,
+				"shipstation_shipment_id": shipment.shipment_id,
+			},
 			pluck="name",
 		)
+
 		if not shipment_deliveries:
 			return
+
 		shipment_doc: "Shipment" = make_shipment(shipment_deliveries[0])
 
 	shipment_doc.update(

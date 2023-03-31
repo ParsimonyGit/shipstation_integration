@@ -142,13 +142,12 @@ def create_customer(order: "ShipStationOrder"):
 
     customer_name = (
         order.customer_email or order.customer_id or order.ship_to.name or customer_id
-    )
+    ).strip()
 
     if frappe.db.exists("Customer", customer_name):
         return frappe.get_doc("Customer", customer_name)
 
     cust = frappe.new_doc("Customer")
-    cust.shipstation_customer_id = customer_id
     cust.customer_name = customer_name
     cust.customer_type = "Individual"
     cust.customer_group = "ShipStation"

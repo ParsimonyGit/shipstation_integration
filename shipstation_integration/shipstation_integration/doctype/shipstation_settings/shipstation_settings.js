@@ -186,13 +186,12 @@ frappe.ui.form.on("Shipstation Settings", {
 frappe.ui.form.on("Shipstation Item Custom Field", {
   before_item_custom_fields_remove: (frm, cdt, cdn) => {
     const deleted_row = frappe.get_doc(cdt, cdn);
-    console.log(deleted_row)
     // Check if there are rows in the shipstation options table that have the deleted fieldname in their "item_field" field.
     const deleted_row_in_use = frm.doc.shipstation_options.find((row) => {
       return row.item_field === deleted_row.fieldname;
     }) !== undefined;
-    if (deleted_row_in_use && deleted_row.__unedited !== true) {
-      frappe.throw(__("Cannot delete field because it is in use."));
+    if (deleted_row_in_use && deleted_row.fieldname) {
+      frappe.throw(__(`Cannot delete field ${deleted_row.label} because it is in use.`));
     } else {
       locals.removed_item_custom_fields = locals.removed_item_custom_fields || [];
       locals.removed_item_custom_fields.push(deleted_row.fieldname);

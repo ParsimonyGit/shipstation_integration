@@ -147,10 +147,6 @@ frappe.ui.form.on("Shipstation Settings", {
     frm.save();
   },
 
-  update_order_item_custom_fields: (frm) => {
-    update_order_item_custom_fields_on_remove(frm);
-  },
-
   toggle_mandatory_table_fields: (frm) => {
     frm.fields_dict.shipstation_stores.grid.toggle_reqd(
       "company",
@@ -190,7 +186,16 @@ frappe.ui.form.on("Shipstation Settings", {
 frappe.ui.form.on("Shipstation Item Custom Field", {
   before_item_custom_fields_remove: (frm, cdt, cdn) => {
     const deleted_row = frappe.get_doc(cdt, cdn);
-    if (deleted_row.fieldname) {
+    // Check if there are rows in the shipstation options table that have the deleted fieldname in their "item_field" field.
+    const deleted_row_in_use = frm.doc.shipstation_options.map((row) => {
+      if (row.item_field === deleted_row.fieldname) {
+        return true;
+      };
+    });
+    if (deleted_row_in_use.includes(true)) {
+      frappe.throw(__("Cannot delete field because it is in use."));
+      frm.reload_doc();
+    } else {
       locals.removed_item_custom_fields = locals.removed_item_custom_fields || [];
       locals.removed_item_custom_fields.push(deleted_row.fieldname);
     };

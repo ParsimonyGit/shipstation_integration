@@ -30,7 +30,6 @@
   "shipstation_options",
   "define_custom_fields_for_items",
   "item_custom_fields",
-  "update_order_item_custom_fields",
   "sb_carriers",
   "carrier_data",
   "carriers_html"
@@ -188,12 +187,6 @@
    "label": "Define Custom Fields for Items"
   },
   {
-   "depends_on": "eval:doc.define_custom_fields_for_items",
-   "fieldname": "update_order_item_custom_fields",
-   "fieldtype": "Button",
-   "label": "Create/Update Custom Fields"
-  },
-  {
    "default": "24",
    "description": "How many hours should we look back for orders on the initial sync? <em>This should be no less than 24.</em>",
    "fieldname": "hours_to_fetch",
@@ -207,7 +200,7 @@
  ],
  "hide_toolbar": 1,
  "links": [],
- "modified": "2023-03-28 16:11:47.038878",
+ "modified": "2023-04-06 11:09:31.116901",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

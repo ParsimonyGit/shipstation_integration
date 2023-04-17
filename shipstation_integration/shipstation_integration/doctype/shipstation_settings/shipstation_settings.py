@@ -1,4 +1,3 @@
-
 # Copyright (c) 2020, Parsimony LLC and contributors
 # For license information, please see license.txt
 
@@ -249,6 +248,7 @@ class ShipstationSettings(Document):
 		item_custom_fields = self.item_custom_fields
 		insert_after = "shipstation_item_notes"
 		item_doctypes = ["Delivery Note Item", "Sales Order Item", "Sales Invoice Item"]
+
 		for field in item_custom_fields:
 			field_def = {
 				"insert_after": insert_after,
@@ -262,8 +262,9 @@ class ShipstationSettings(Document):
 				"options": field.options,
 				"default": field.default,
 				"fetch_from": field.fetch_from,
-				"fetch_if_empty": field.fetch_if_empty
+				"fetch_if_empty": field.fetch_if_empty,
 			}
+
 			for dt in item_doctypes:
 				if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
 					custom_field = frappe.new_doc("Custom Field")
@@ -274,12 +275,19 @@ class ShipstationSettings(Document):
 					custom_field = frappe.get_doc("Custom Field", {"dt": dt, "fieldname": field.fieldname})
 					custom_field.update(field_def)
 					custom_field.save()
+
 				if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
 					insert_after = field.fieldname
+
 		# delete any removed custom fields
 		if removed_item_custom_fields:
 			# make sure that the removed field is not in the item_custom_fields variable
-			removed_item_custom_fields = [field for field in removed_item_custom_fields if field not in [f.fieldname for f in item_custom_fields]]
+			removed_item_custom_fields = [
+				field
+				for field in removed_item_custom_fields
+				if field not in [f.fieldname for f in item_custom_fields]
+			]
+
 			for fieldname in removed_item_custom_fields:
 				for dt in item_doctypes:
 					if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": fieldname}):

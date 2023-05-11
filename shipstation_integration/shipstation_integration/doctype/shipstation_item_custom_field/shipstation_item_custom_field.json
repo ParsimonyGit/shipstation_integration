@@ -74,7 +74,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Type",
-   "options": "\nCheck\nData\nLink\nSection Break\nSelect\nSmall Text\nText",
+   "options": "\nCheck\nData\nLink\nSelect\nSmall Text\nText",
    "reqd": 1
   },
   {

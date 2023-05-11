@@ -6,6 +6,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "tb_setup",
   "enabled",
   "enable_label_generation",
   "api_key",
@@ -16,7 +17,7 @@
   "get_orders",
   "get_shipments",
   "update_carriers_and_stores",
-  "sb_filters",
+  "tb_filters",
   "hours_to_fetch",
   "column_break_l1sdm",
   "since_date",
@@ -26,11 +27,11 @@
   "reset_warehouses",
   "sb_stores",
   "shipstation_stores",
-  "metadata_import_section",
+  "tb_metadata",
   "shipstation_options",
   "define_custom_fields_for_items",
   "item_custom_fields",
-  "sb_carriers",
+  "tb_carriers",
   "carrier_data",
   "carriers_html"
  ],
@@ -108,13 +109,8 @@
   {
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "sb_stores",
-   "fieldtype": "Section Break"
-  },
-  {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "sb_carriers",
-   "fieldtype": "Section Break",
-   "label": "Carriers"
+   "fieldtype": "Tab Break",
+   "label": "Stores"
   },
   {
    "depends_on": "eval:!doc.__islocal",
@@ -127,11 +123,6 @@
    "fieldname": "enabled",
    "fieldtype": "Check",
    "label": "Enabled"
-  },
-  {
-   "fieldname": "sb_filters",
-   "fieldtype": "Section Break",
-   "label": "Filters"
   },
   {
    "description": "If orders are found before this date, they will not be created. This filter can be useful to avoid stock mismatches after reconciliation.",
@@ -163,11 +154,6 @@
    "label": "Reset"
   },
   {
-   "fieldname": "metadata_import_section",
-   "fieldtype": "Section Break",
-   "label": "Metadata Import"
-  },
-  {
    "fieldname": "shipstation_options",
    "fieldtype": "Table",
    "label": "Shipstation Options",
@@ -196,11 +182,33 @@
   {
    "fieldname": "column_break_l1sdm",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tb_setup",
+   "fieldtype": "Tab Break",
+   "label": "Setup"
+  },
+  {
+   "fieldname": "tb_filters",
+   "fieldtype": "Tab Break",
+   "label": "Filters"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "tb_metadata",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "tb_carriers",
+   "fieldtype": "Tab Break",
+   "label": "Carriers"
   }
  ],
  "hide_toolbar": 1,
  "links": [],
- "modified": "2023-04-06 11:09:31.116901",
+ "modified": "2023-04-17 00:23:10.508729",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

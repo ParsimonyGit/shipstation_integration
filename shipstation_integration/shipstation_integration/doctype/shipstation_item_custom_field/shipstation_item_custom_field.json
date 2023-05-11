@@ -10,7 +10,6 @@
   "fieldtype",
   "fieldname",
   "length",
-  "mandatory",
   "hidden",
   "read_only",
   "reqd",
@@ -28,13 +27,6 @@
    "in_list_view": 1,
    "label": "Label",
    "reqd": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "mandatory",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "label": "Mandatory"
   },
   {
    "default": "0",
@@ -102,13 +94,13 @@
    "default": "0",
    "fieldname": "reqd",
    "fieldtype": "Check",
-   "label": "Reqd"
+   "label": "Is Mandatory"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-03-28 09:05:26.518578",
+ "modified": "2023-05-11 08:58:32.481659",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Item Custom Field",

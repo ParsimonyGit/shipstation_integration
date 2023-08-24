@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import TYPE_CHECKING, Optional
 
 import frappe
@@ -31,6 +32,7 @@ def list_shipments(
 	settings: "ShipstationSettings" = None,
 	last_shipment_datetime: "datetime.datetime" = None,
 ):
+	last_shipment_datetime = None
 	if not settings:
 		settings = frappe.get_all("Shipstation Settings", filters={"enabled": True})
 	elif not isinstance(settings, list):
@@ -46,7 +48,7 @@ def list_shipments(
 
 		if not last_shipment_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
-			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+			last_shipment_datetime = datetime.datetime.utcnow() - datetime.timedelta(days=7)
 
 		store: "ShipstationStore"
 		for store in sss_doc.shipstation_stores:
@@ -157,9 +159,20 @@ def create_sales_invoice(shipment: "ShipStationOrder", store: "ShipstationStore"
 			},
 		)
 
-	si.save()
-	si.submit()
-	return si
+	err = None
+	try:
+		si.save()
+		si.submit()
+		return si
+	except frappe.ValidationError as e:
+		return None	
+	except Exception as e:
+		err = e
+	if err is not None:
+		print(type(err))
+		print(err)
+		raise Exception(si)
+		
 
 
 def create_delivery_note(
@@ -195,15 +208,22 @@ def create_shipment(
 	store: "ShipstationStore",
 	delivery_note: Optional["DeliveryNote"] = None,
 ):
-	if delivery_note:
-		shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+	if delivery_note and delivery_note.docstatus == 1:
+		err = None
+		try:
+			shipment_doc: "Shipment" = make_shipment(delivery_note.name)
+		except Exception as e:
+			err = e
+		if err is not None:
+			print(err)
+			raise Exception(delivery_note.docstatus)
 	else:
 		shipment_deliveries = frappe.get_all(
 			"Delivery Note",
 			filters={"shipstation_shipment_id": shipment.shipment_id},
 			pluck="name",
 		)
-		if not shipment_deliveries:
+		if not (shipment_deliveries and hasattr(shipment_deliveries, "docstatus") and shipment_deliveries.docstatus == 1):
 			return
 		shipment_doc: "Shipment" = make_shipment(shipment_deliveries[0])
 
@@ -216,7 +236,8 @@ def create_shipment(
 			"awb_number": shipment.tracking_number,
 			"shipment_amount": shipment.shipment_cost,
 			"service_provider": "Shipstation",
-			"incoterm": "DAP (Delivered At Place)",
+			# TODO results in incoterm not found
+			# "incoterm": "DAP (Delivered At Place)",
 			"shipstation_store_name": store.store_name,
 			"shipstation_order_id": shipment.order_id,
 			"marketplace": store.marketplace_name,
@@ -251,8 +272,22 @@ def create_shipment(
 	shipment_doc.flags.ignore_mandatory = True
 	shipment_doc.run_method("set_missing_values")
 
+	if shipment.order_date is None:
+		return None
+
 	shipment_doc.save()
-	shipment_doc.submit()
+
+	is_error = False
+	er = None
+	try:
+		shipment_doc.submit()
+	except Exception as e:
+		er = e
+		is_error = True
+
+	if is_error:
+		print(f"order_date {shipment.order_date}")
+		raise Exception(shipment)
 	frappe.db.commit()
 
 	return shipment_doc

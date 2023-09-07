@@ -100,7 +100,13 @@ def list_orders(
 						)
 
 					if should_create_order:
-						create_erpnext_order(order, store)
+						try:
+							create_erpnext_order(order, store)
+						except frappe.LinkValidationError as e:
+							frappe.log_error(
+								title=f"Error while creating Shipstation order {order.order_id}",
+								message=e
+							)
 
 
 def validate_order(

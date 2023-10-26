@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 		ShipstationSettings,
 	)
 
+# map Shipstation UOM to ERPNext UOM
 WEIGHT_UOM_MAP = {"Grams": "Gram", "Ounces": "Ounce", "Pounds": "Pound"}
 
 
@@ -51,20 +52,17 @@ def create_item(
 	if item_code:
 		item: "Item" = frappe.get_doc("Item", item_code)
 	else:
-		weight_per_unit, weight_uom = 1.0, "Ounce"
+		weight_per_unit = weight_uom = None
 		if isinstance(product, ShipStationItem):
-			weight_per_unit = flt(getattr(product, "weight_oz", 1))
+			weight_per_unit = getattr(product, "weight_oz", None)
+			weight_uom = "Ounce" if weight_per_unit else None
 		elif isinstance(product, ShipStationOrderItem):
 			weight = product.weight if hasattr(product, "weight") else frappe._dict()
 			if weight:
-				weight_per_unit = flt(weight.value) if weight else 1
+				weight_per_unit = weight.value if weight else 1
 				weight_uom = (
 					weight.units.title() if weight and weight.units else "Ounce"
 				)
-
-				if weight_uom == "Ounces":
-					# map Shipstation UOM to ERPNext UOM
-					weight_uom = "Ounce"
 
 		item: "Item" = frappe.new_doc("Item")
 		item.update(
@@ -75,7 +73,7 @@ def create_item(
 				"is_stock_item": True,
 				"include_item_in_manufacturing": False,
 				"description": getattr(product, "internal_notes", product.name),
-				"weight_per_unit": weight_per_unit,
+				"weight_per_unit": flt(weight_per_unit),
 				"weight_uom": WEIGHT_UOM_MAP.get(weight_uom, weight_uom),
 				"end_of_life": "",
 			}

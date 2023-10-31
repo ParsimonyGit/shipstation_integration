@@ -320,6 +320,9 @@ def setup_custom_fields():
 		"Shipment": shipment_fields,
 	}
 
+	# for v13 -> v14 migration, we need to reload the custom field doctype
+	frappe.reload_doc("custom", "doctype", "custom_field")
+
 	print("Creating custom fields for Shipstation")
 	create_custom_fields(custom_fields)
 

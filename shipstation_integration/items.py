@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 		ShipstationSettings,
 	)
 
+# map Shipstation UOM to ERPNext UOM
+WEIGHT_UOM_MAP = {"Grams": "Gram", "Ounces": "Ounce", "Pounds": "Pound"}
+
 
 def create_item(
 	product: Union[ShipStationItem, ShipStationOrderItem],
@@ -32,32 +35,34 @@ def create_item(
 	"""
 
 	item_code = get_item_alias(product)
-	item_name = frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
+	item_name = (
+		frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
+	)
 
 	if not item_code:
 		if not product.sku:
 			item_code = frappe.db.get_value("Item", {"item_name": item_name.strip()})
 		else:
 			item_code = frappe.db.get_value("Item", {"item_code": product.sku.strip()})
-			item_name = frappe.db.get_value("Item", item_code, "item_name") or product.name[:140]
+			item_name = (
+				frappe.db.get_value("Item", item_code, "item_name")
+				or product.name[:140]
+			)
 
 	if item_code:
 		item: "Item" = frappe.get_doc("Item", item_code)
 	else:
-		weight_per_unit, weight_uom = 1.0, "Ounce"
+		weight_per_unit = weight_uom = None
 		if isinstance(product, ShipStationItem):
-			weight_per_unit = flt(getattr(product, "weight_oz", 1))
+			weight_per_unit = getattr(product, "weight_oz", None)
+			weight_uom = "Ounce" if weight_per_unit else None
 		elif isinstance(product, ShipStationOrderItem):
 			weight = product.weight if hasattr(product, "weight") else frappe._dict()
 			if weight:
-				weight_per_unit = flt(weight.value) if weight else 1
+				weight_per_unit = weight.value if weight else 1
 				weight_uom = (
 					weight.units.title() if weight and weight.units else "Ounce"
 				)
-
-				if weight_uom == "Ounces":
-					# map Shipstation UOM to ERPNext UOM
-					weight_uom = "Ounce"
 
 		item: "Item" = frappe.new_doc("Item")
 		item.update(
@@ -68,8 +73,8 @@ def create_item(
 				"is_stock_item": True,
 				"include_item_in_manufacturing": False,
 				"description": getattr(product, "internal_notes", product.name),
-				"weight_per_unit": weight_per_unit,
-				"weight_uom": weight_uom,
+				"weight_per_unit": flt(weight_per_unit),
+				"weight_uom": WEIGHT_UOM_MAP.get(weight_uom, weight_uom),
 				"end_of_life": "",
 			}
 		)
@@ -79,16 +84,18 @@ def create_item(
 		item.disabled = False
 		item.add_comment(
 			comment_type="Edit",
-			text="re-enabled this item after a new order was fetched from Shipstation"
+			text="re-enabled this item after a new order was fetched from Shipstation",
 		)
 
 	# create item defaults, if missing
 	if store:
-		item.update({
-			"integration_doctype": "Shipstation Settings",
-			"integration_doc": store.parent,
-			"store": store.name,
-		})
+		item.update(
+			{
+				"integration_doctype": "Shipstation Settings",
+				"integration_doc": store.parent,
+				"store": store.name,
+			}
+		)
 
 		if store.company and not item.get("item_defaults"):
 			item.set(

@@ -114,6 +114,19 @@ def setup_custom_fields():
 
 	common_custom_sales_fields = [
 		dict(
+			fieldname="tb_commerce",
+			label="E-commerce",
+			fieldtype="Tab Break",
+			insert_after="company_address_display",
+		),
+		dict(
+			fieldtype="Section Break",
+			fieldname="sb_shipstation",
+			collapsible=True,
+			label="Shipstation",
+			insert_after="tb_commerce",
+		),
+		dict(
 			fieldtype="Data",
 			fieldname="shipstation_store_name",
 			read_only=True,
@@ -216,61 +229,28 @@ def setup_custom_fields():
 		),
 	]
 
-	sales_order_fields = [
+	sales_order_fields = common_custom_sales_fields
+	sales_invoice_fields = common_custom_sales_fields + [
 		dict(
-			fieldtype="Section Break",
-			fieldname="sb_shipstation",
-			collapsible=True,
-			label="Shipstation",
-			insert_after="tax_id",
-		),
-	] + common_custom_sales_fields
+			fieldtype="Data",
+			fieldname="shipstation_shipment_id",
+			read_only=True,
+			label="Shipstation Shipment ID",
+			insert_after="shipstation_order_id",
+			translatable=False,
+		)
+	]
 
-	sales_invoice_fields = (
-		[
-			dict(
-				fieldtype="Section Break",
-				fieldname="sb_shipstation",
-				collapsible=True,
-				label="Shipstation",
-				insert_after="amended_from",
-			),
-		]
-		+ common_custom_sales_fields
-		+ [
-			dict(
-				fieldtype="Data",
-				fieldname="shipstation_shipment_id",
-				read_only=True,
-				label="Shipstation Shipment ID",
-				insert_after="shipstation_order_id",
-				translatable=False,
-			)
-		]
-	)
-
-	delivery_note_fields = (
-		[
-			dict(
-				fieldtype="Section Break",
-				fieldname="sb_shipstation",
-				collapsible=True,
-				label="Shipstation",
-				insert_after="return_against",
-			),
-		]
-		+ common_custom_sales_fields
-		+ [
-			dict(
-				fieldtype="Data",
-				fieldname="shipstation_shipment_id",
-				read_only=True,
-				label="Shipstation Shipment ID",
-				insert_after="shipstation_order_id",
-				translatable=False,
-			)
-		]
-	)
+	delivery_note_fields = common_custom_sales_fields + [
+		dict(
+			fieldtype="Data",
+			fieldname="shipstation_shipment_id",
+			read_only=True,
+			label="Shipstation Shipment ID",
+			insert_after="shipstation_order_id",
+			translatable=False,
+		)
+	]
 
 	shipment_fields = [
 		dict(
@@ -319,6 +299,9 @@ def setup_custom_fields():
 		"Delivery Note Item": common_custom_sales_item_fields,
 		"Shipment": shipment_fields,
 	}
+
+	# for v13 -> v14 migration, we need to reload the custom field doctype
+	frappe.reload_doc("custom", "doctype", "custom_field")
 
 	print("Creating custom fields for Shipstation")
 	create_custom_fields(custom_fields)

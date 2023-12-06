@@ -42,6 +42,11 @@ class ShipstationSettings(Document):
 	def validate(self):
 		self.validate_label_generation()
 		self.validate_enabled_stores()
+		if self.hours_to_fetch < 24:
+			frappe.throw(
+				_("Order Age must be greater than or equal to 24 hours"),
+				title=_("Invalid Order Age"),
+			)
 
 	def before_insert(self):
 		self.validate_api_connection()
@@ -52,6 +57,7 @@ class ShipstationSettings(Document):
 
 	@frappe.whitelist()
 	def get_orders(self):
+		self.validate()
 		list_orders(self)
 
 	@frappe.whitelist()
@@ -234,3 +240,55 @@ class ShipstationSettings(Document):
 						_package = pack["code"]
 
 		return _carrier, _service, _package
+
+	# create custom fields on the Sales Order Item doctype from the item_custom_fields table (for storing Shipstation metadata)
+	@frappe.whitelist()
+	def update_order_item_custom_fields(self, removed_item_custom_fields=None):
+		# first, create any new custom fields
+		item_custom_fields = self.item_custom_fields
+		insert_after = "shipstation_item_notes"
+		item_doctypes = ["Delivery Note Item", "Sales Order Item", "Sales Invoice Item"]
+
+		for field in item_custom_fields:
+			field_def = {
+				"insert_after": insert_after,
+				"label": field.label,
+				"fieldtype": field.fieldtype,
+				"fieldname": field.fieldname,
+				"length": field.length,
+				"reqd": field.reqd,
+				"hidden": field.hidden,
+				"read_only": field.read_only,
+				"options": field.options,
+				"default": field.default,
+				"fetch_from": field.fetch_from,
+				"fetch_if_empty": field.fetch_if_empty,
+			}
+
+			for dt in item_doctypes:
+				if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
+					custom_field = frappe.new_doc("Custom Field")
+					custom_field.dt = dt
+					custom_field.update(field_def)
+					custom_field.insert()
+				else:
+					custom_field = frappe.get_doc("Custom Field", {"dt": dt, "fieldname": field.fieldname})
+					custom_field.update(field_def)
+					custom_field.save()
+
+				if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": field.fieldname}):
+					insert_after = field.fieldname
+
+		# delete any removed custom fields
+		if removed_item_custom_fields:
+			# make sure that the removed field is not in the item_custom_fields variable
+			removed_item_custom_fields = [
+				field
+				for field in removed_item_custom_fields
+				if field not in [f.fieldname for f in item_custom_fields]
+			]
+
+			for fieldname in removed_item_custom_fields:
+				for dt in item_doctypes:
+					if frappe.db.exists("Custom Field", {"dt": dt, "fieldname": fieldname}):
+						frappe.db.delete("Custom Field", {"dt": dt, "fieldname": fieldname})

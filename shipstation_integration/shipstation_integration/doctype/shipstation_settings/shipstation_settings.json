@@ -1,10 +1,12 @@
 {
+ "actions": [],
  "autoname": "Prompt",
  "creation": "2019-12-10 11:54:44.442858",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "tb_setup",
   "enabled",
   "enable_label_generation",
   "api_key",
@@ -15,7 +17,9 @@
   "get_orders",
   "get_shipments",
   "update_carriers_and_stores",
-  "sb_filters",
+  "tb_filters",
+  "hours_to_fetch",
+  "column_break_l1sdm",
   "since_date",
   "sb_warehouses",
   "shipstation_warehouses",
@@ -23,7 +27,11 @@
   "reset_warehouses",
   "sb_stores",
   "shipstation_stores",
-  "sb_carriers",
+  "tb_metadata",
+  "shipstation_options",
+  "define_custom_fields_for_items",
+  "item_custom_fields",
+  "tb_carriers",
   "carrier_data",
   "carriers_html"
  ],
@@ -101,13 +109,8 @@
   {
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "sb_stores",
-   "fieldtype": "Section Break"
-  },
-  {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "sb_carriers",
-   "fieldtype": "Section Break",
-   "label": "Carriers"
+   "fieldtype": "Tab Break",
+   "label": "Stores"
   },
   {
    "depends_on": "eval:!doc.__islocal",
@@ -120,11 +123,6 @@
    "fieldname": "enabled",
    "fieldtype": "Check",
    "label": "Enabled"
-  },
-  {
-   "fieldname": "sb_filters",
-   "fieldtype": "Section Break",
-   "label": "Filters"
   },
   {
    "description": "If orders are found before this date, they will not be created. This filter can be useful to avoid stock mismatches after reconciliation.",
@@ -154,13 +152,67 @@
    "fieldname": "reset_warehouses",
    "fieldtype": "Button",
    "label": "Reset"
+  },
+  {
+   "fieldname": "shipstation_options",
+   "fieldtype": "Table",
+   "label": "Shipstation Options",
+   "options": "Shipstation Option"
+  },
+  {
+   "depends_on": "eval:doc.define_custom_fields_for_items",
+   "fieldname": "item_custom_fields",
+   "fieldtype": "Table",
+   "label": "Item Custom Fields",
+   "options": "Shipstation Item Custom Field"
+  },
+  {
+   "default": "0",
+   "fieldname": "define_custom_fields_for_items",
+   "fieldtype": "Check",
+   "label": "Define Custom Fields for Items"
+  },
+  {
+   "default": "24",
+   "description": "How many hours should we look back for orders on the initial sync? <em>This should be no less than 24.</em>",
+   "fieldname": "hours_to_fetch",
+   "fieldtype": "Int",
+   "label": "Order Age"
+  },
+  {
+   "fieldname": "column_break_l1sdm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tb_setup",
+   "fieldtype": "Tab Break",
+   "label": "Setup"
+  },
+  {
+   "fieldname": "tb_filters",
+   "fieldtype": "Tab Break",
+   "label": "Filters"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "tb_metadata",
+   "fieldtype": "Tab Break",
+   "label": "Metadata"
+  },
+  {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "tb_carriers",
+   "fieldtype": "Tab Break",
+   "label": "Carriers"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2021-11-24 05:30:10.617590",
+ "links": [],
+ "modified": "2023-04-17 00:23:10.508729",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",
+ "naming_rule": "Set by user",
  "owner": "Administrator",
  "permissions": [
   {
@@ -201,5 +253,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_views": 1
 }

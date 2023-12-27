@@ -91,9 +91,16 @@ def list_orders(
 
 			order: "ShipStationOrder"
 			for order in orders:
-				if validate_order(sss_doc, order, store):
-					should_create_order = True
+				try:
+					should_create_order = validate_order(sss_doc, order, store)
+				except Exception as e:
+					frappe.log_error(
+						title=f"Error while validating Shipstation order {order.order_id}",
+						message=e
+					)
+					continue
 
+				if should_create_order:
 					process_order_hook = frappe.get_hooks("process_shipstation_order")
 					if process_order_hook:
 						should_create_order = frappe.get_attr(process_order_hook[0])(

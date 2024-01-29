@@ -19,9 +19,8 @@ def update_amazon_order(
     existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
     email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
-    phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
-    if email_id or phone_no:
-        contact = create_contact(order, email_id, phone_no)
+    if email_id:
+        contact = create_contact(order, email_id)
         existing_so_doc.contact_person = contact.name
 
     existing_so_doc.update(

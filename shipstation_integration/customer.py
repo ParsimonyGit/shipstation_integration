@@ -19,8 +19,9 @@ def update_amazon_order(
     existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
     email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
-    if email_id:
-        contact = create_contact(order, email_id)
+    phone_no = order.ship_to.phone
+    if email_id or phone_no:
+        contact = create_contact(order, email_id, phone_no)
         existing_so_doc.contact_person = contact.name
 
     existing_so_doc.update(
@@ -156,8 +157,9 @@ def create_customer(order: "ShipStationOrder"):
     frappe.db.commit()
 
     email_id, user_name = parse_addr(customer_name)
-    if email_id:
-        customer_primary_contact = create_contact(order, email_id)
+    phone_no = order.ship_to.phone
+    if email_id or phone_no:
+        customer_primary_contact = create_contact(order, email_id, phone_no)
         if customer_primary_contact:
             cust.customer_primary_contact = customer_primary_contact.name
 
@@ -177,17 +179,20 @@ def create_customer(order: "ShipStationOrder"):
         frappe.log_error(title="Error saving Shipstation Customer", message=e)
 
 
-def create_contact(order: "ShipStationOrder", customer_name: str):
-    contact = frappe.get_value("Contact Email", {"email_id": customer_name}, "parent")
+def create_contact(order: "ShipStationOrder", email_id: str=None, phone_no: int=None):
+    contact = frappe.get_value("Contact Email", {"email_id": email_id}, "parent")
     if contact:
         return frappe._dict({"name": contact})
     cont: "Contact" = frappe.new_doc("Contact")
     cont.first_name = order.bill_to.name or "Not Provided"
     for char in "<>":
         cont.first_name = cont.first_name.replace(char, "")
-    if customer_name:
-        cont.append("email_ids", {"email_id": customer_name})
-        cont.append("links", {"link_doctype": "Customer", "link_name": customer_name})
+    if email_id:
+        cont.append("email_ids", {"email_id": email_id})
+        cont.append("links", {"link_doctype": "Customer", "link_name": email_id})
+    if phone_no:
+        cont.append("phone_nos", {"phone": phone_no})
+        cont.append("links", {"link_doctype": "Customer", "link_name": email_id})
     try:
         cont.save()
         frappe.db.commit()

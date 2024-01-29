@@ -14,14 +14,13 @@ if TYPE_CHECKING:
 	)
 
 
-def update_customer_details(
-	existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"
-):
+def update_amazon_order(existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"):
 	existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
 	email_id, _ = parse_addr(existing_so_doc.amazon_customer)
-	if email_id:
-		contact = create_contact(order, email_id)
+	phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
+	if email_id or phone_no:
+		contact = create_contact(order, email_id, phone_no)
 		existing_so_doc.contact_person = contact.name
 
 	existing_so_doc.update(
@@ -77,6 +76,25 @@ def update_customer_details(
 	return existing_so_doc
 
 
+def update_shopify_order(existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"):
+	existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
+	existing_so_doc.update(
+		{
+			"shipstation_order_id": order.order_id,
+			"shipstation_store_name": store.store_name,
+			"shipstation_customer_notes": getattr(order, "customer_notes", None),
+			"shipstation_internal_notes": getattr(order, "internal_notes", None),
+			"marketplace_order_id": order.order_number,
+			"delivery_date": getdate(order.ship_date),
+			"has_pii": True,
+		}
+	)
+
+	existing_so_doc.flags.ignore_validate_update_after_submit = True
+	existing_so_doc.save()
+	return existing_so_doc
+
+
 def create_address(address: "ShipStationAddress", customer: str, email: str, address_type: str):
 	addr: "Address" = frappe.new_doc("Address")
 	addr.append("links", {"link_doctype": "Customer", "link_name": customer})
@@ -115,7 +133,9 @@ def create_customer(order: "ShipStationOrder"):
 		order.customer_id or order.customer_email or order.ship_to.name or frappe.generate_hash("", 10)
 	)
 
-	customer_name = order.customer_email or order.customer_id or order.ship_to.name or customer_id
+	customer_name = (
+		order.customer_email or order.customer_id or order.ship_to.name or customer_id
+	).strip()
 
 	if frappe.db.exists("Customer", customer_name):
 		return frappe.get_doc("Customer", customer_name)
@@ -130,8 +150,9 @@ def create_customer(order: "ShipStationOrder"):
 	frappe.db.commit()
 
 	email_id, _ = parse_addr(customer_name)
-	if email_id:
-		customer_primary_contact = create_contact(order, email_id)
+	phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
+	if email_id or phone_no:
+		customer_primary_contact = create_contact(order, email_id, phone_no)
 		if customer_primary_contact:
 			cust.customer_primary_contact = customer_primary_contact.name
 
@@ -147,17 +168,21 @@ def create_customer(order: "ShipStationOrder"):
 		frappe.log_error(title="Error saving Shipstation Customer", message=e)
 
 
-def create_contact(order: "ShipStationOrder", customer_name: str):
-	contact = frappe.get_value("Contact Email", {"email_id": customer_name}, "parent")
+def create_contact(order: "ShipStationOrder", email_id: str = None, phone_no: str = None):
+	contact = frappe.get_value("Contact Email", {"email_id": email_id}, "parent")
 	if contact:
 		return frappe._dict({"name": contact})
 	cont: "Contact" = frappe.new_doc("Contact")
 	cont.first_name = order.bill_to.name or "Not Provided"
 	for char in "<>":
 		cont.first_name = cont.first_name.replace(char, "")
-	if customer_name:
-		cont.append("email_ids", {"email_id": customer_name})
-		cont.append("links", {"link_doctype": "Customer", "link_name": customer_name})
+	if email_id:
+		cont.append("email_ids", {"email_id": email_id})
+		cont.append("links", {"link_doctype": "Customer", "link_name": email_id})
+	if phone_no:
+		cont.append("phone_nos", {"phone": phone_no})
+		# as the data for links is same as above for email it will saved only once
+		cont.append("links", {"link_doctype": "Customer", "link_name": email_id})
 	try:
 		cont.save()
 		frappe.db.commit()

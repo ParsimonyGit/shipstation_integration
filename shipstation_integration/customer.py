@@ -149,7 +149,7 @@ def create_customer(order: "ShipStationOrder"):
 	cust.save()
 	frappe.db.commit()
 
-	email_id, user_name = parse_addr(customer_name)
+	email_id, _ = parse_addr(customer_name)
 	phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
 	if email_id or phone_no:
 		customer_primary_contact = create_contact(order, email_id, phone_no)
@@ -157,9 +157,9 @@ def create_customer(order: "ShipStationOrder"):
 			cust.customer_primary_contact = customer_primary_contact.name
 
 	if order.ship_to.street1:
-		create_address(order.ship_to, customer_name, order.customer_email, "Shipping").name
+		create_address(order.ship_to, customer_name, order.customer_email, "Shipping")
 	if order.bill_to.street1:
-		create_address(order.bill_to, order.customer_username, order.customer_email, "Billing").name
+		create_address(order.bill_to, order.customer_username, order.customer_email, "Billing")
 
 	try:
 		cust.save()

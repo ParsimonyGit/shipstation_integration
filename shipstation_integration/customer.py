@@ -100,13 +100,6 @@ def create_address(address: "ShipStationAddress", customer: str, email: str, add
 	return addr
 
 
-def create_address(address: "ShipStationAddress", customer: str, email: str, address_type: str):
-	addr: "Address" = frappe.new_doc("Address")
-	addr.append("links", {"link_doctype": "Customer", "link_name": customer})
-	_update_address(address, addr, email, address_type)
-	return addr
-
-
 def update_address(
 	address: "ShipStationAddress", address_name: str, email: str, address_type: str
 ):

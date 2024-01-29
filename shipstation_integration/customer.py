@@ -32,6 +32,8 @@ def update_amazon_order(existing_so: str, order: "ShipStationOrder", store: "Shi
 			"marketplace_order_id": order.order_number,
 			"delivery_date": getdate(order.ship_date),
 			"has_pii": True,
+			"integration_doctype": "Shipstation Settings",
+			"integration_doc": store.parent,
 		}
 	)
 
@@ -139,6 +141,7 @@ def create_customer(order: "ShipStationOrder"):
 		return frappe.get_doc("Customer", customer_name)
 
 	cust = frappe.new_doc("Customer")
+	cust.shipstation_customer_id = customer_id
 	cust.customer_name = customer_name
 	cust.customer_type = "Individual"
 	cust.customer_group = "ShipStation"

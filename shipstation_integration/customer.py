@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 def update_amazon_order(existing_so: str, order: "ShipStationOrder", store: "ShipstationStore"):
 	existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
-	email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
+	email_id, _ = parse_addr(existing_so_doc.amazon_customer)
 	phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
 	if email_id or phone_no:
 		contact = create_contact(order, email_id, phone_no)

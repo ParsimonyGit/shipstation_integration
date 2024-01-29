@@ -19,7 +19,7 @@ def update_amazon_order(
     existing_so_doc: "SalesOrder" = frappe.get_doc("Sales Order", existing_so)
 
     email_id, user_name = parse_addr(existing_so_doc.amazon_customer)
-    phone_no = order.ship_to.phone
+    phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
     if email_id or phone_no:
         contact = create_contact(order, email_id, phone_no)
         existing_so_doc.contact_person = contact.name
@@ -157,7 +157,7 @@ def create_customer(order: "ShipStationOrder"):
     frappe.db.commit()
 
     email_id, user_name = parse_addr(customer_name)
-    phone_no = order.ship_to.phone
+    phone_no = order.ship_to.phone if order.ship_to and order.ship_to.phone else None
     if email_id or phone_no:
         customer_primary_contact = create_contact(order, email_id, phone_no)
         if customer_primary_contact:
@@ -179,7 +179,7 @@ def create_customer(order: "ShipStationOrder"):
         frappe.log_error(title="Error saving Shipstation Customer", message=e)
 
 
-def create_contact(order: "ShipStationOrder", email_id: str=None, phone_no: int=None):
+def create_contact(order: "ShipStationOrder", email_id: str=None, phone_no: str=None):
     contact = frappe.get_value("Contact Email", {"email_id": email_id}, "parent")
     if contact:
         return frappe._dict({"name": contact})
@@ -192,6 +192,7 @@ def create_contact(order: "ShipStationOrder", email_id: str=None, phone_no: int=
         cont.append("links", {"link_doctype": "Customer", "link_name": email_id})
     if phone_no:
         cont.append("phone_nos", {"phone": phone_no})
+        # as the data for links is same as above for email it will saved only once
         cont.append("links", {"link_doctype": "Customer", "link_name": email_id})
     try:
         cont.save()

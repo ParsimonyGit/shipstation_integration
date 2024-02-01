@@ -61,7 +61,7 @@ def list_orders(
 		if not last_order_datetime:
 			# Get data for the last day, Shipstation API behaves oddly when it's a shorter period
 			last_order_datetime = datetime.datetime.utcnow() - datetime.timedelta(
-				hours=24
+				hours=sss_doc.get("hours_to_fetch", 24)
 			)
 
 		store: "ShipstationStore"
@@ -222,6 +222,7 @@ def create_erpnext_order(
 
 	discount_amount = 0.0
 	for item in order_items:
+		# skip the item if the quantity is 0 (item was refunded)
 		if item.quantity < 1:
 			continue
 
@@ -236,9 +237,7 @@ def create_erpnext_order(
 		settings = frappe.get_doc("Shipstation Settings", store.parent)
 		item_code = create_item(item, settings=settings, store=store)
 		item_notes = get_item_notes(item)
-		so.append(
-			"items",
-			{
+		item_dict = {
 				"item_code": item_code,
 				"qty": item.quantity,
 				"uom": frappe.db.get_single_value("Stock Settings", "stock_uom"),
@@ -247,8 +246,26 @@ def create_erpnext_order(
 				"warehouse": store.warehouse,
 				"shipstation_order_item_id": item.order_item_id,
 				"shipstation_item_notes": item_notes,
-			},
-		)
+			}
+
+		options_import = frappe.get_all("Shipstation Option",
+			filters=dict(parent=store.parent),
+			fields=["shipstation_option_name", "item_field"])
+
+		for option in item.options:
+			# check to see if the option is in the Options Import table
+			option_import = next((x for x in options_import if x.shipstation_option_name == option.name), None)
+			if option_import:
+				if option_import.item_field:
+					item_dict[option_import.item_field] = option.value
+			else:
+				# if the option name is not in the Options Import table, add it
+				settings.append("options_import", {
+					"shipstation_option_name": option.name
+				})
+				settings.save()
+
+		so.append("items", item_dict)
 
 	if not so.get("items"):
 		return

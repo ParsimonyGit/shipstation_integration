@@ -1,4 +1,5 @@
 {
+ "actions": [],
  "autoname": "Prompt",
  "creation": "2019-12-10 11:54:44.442858",
  "doctype": "DocType",
@@ -16,6 +17,8 @@
   "get_shipments",
   "update_carriers_and_stores",
   "sb_filters",
+  "hours_to_fetch",
+  "column_break_13",
   "since_date",
   "sb_warehouses",
   "shipstation_warehouses",
@@ -23,6 +26,11 @@
   "reset_warehouses",
   "sb_stores",
   "shipstation_stores",
+  "sb_itemmeta",
+  "options_import",
+  "create_custom_fields_for_items",
+  "item_custom_fields",
+  "update_order_item_custom_fields",
   "sb_carriers",
   "carrier_data",
   "carriers_html"
@@ -154,10 +162,52 @@
    "fieldname": "reset_warehouses",
    "fieldtype": "Button",
    "label": "Reset"
+  },
+  {
+   "fieldname": "sb_itemmeta",
+   "fieldtype": "Section Break",
+   "label": "Metadata Import"
+  },
+  {
+   "depends_on": "eval:doc.create_custom_fields_for_items",
+   "fieldname": "update_order_item_custom_fields",
+   "fieldtype": "Button",
+   "label": "Create/Update Custom Fields"
+  },
+  {
+   "fieldname": "options_import",
+   "fieldtype": "Table",
+   "label": "Shipstation Options",
+   "options": "Shipstation Option"
+  },
+  {
+   "default": "0",
+   "fieldname": "create_custom_fields_for_items",
+   "fieldtype": "Check",
+   "label": "Define Custom Fields for Items"
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "24",
+   "description": "How many hours should we look back for orders on the initial sync? <em>This should be no less than 24.</em>",
+   "fieldname": "hours_to_fetch",
+   "fieldtype": "Int",
+   "label": "Order Age"
+  },
+  {
+   "depends_on": "eval:doc.create_custom_fields_for_items",
+   "fieldname": "item_custom_fields",
+   "fieldtype": "Table",
+   "label": "Item Custom Fields",
+   "options": "Shipstation Item Custom Field"
   }
  ],
  "hide_toolbar": 1,
- "modified": "2021-11-24 05:30:10.617590",
+ "links": [],
+ "modified": "2022-12-09 16:13:16.647066",
  "modified_by": "Administrator",
  "module": "Shipstation Integration",
  "name": "Shipstation Settings",

@@ -1,85 +1,155 @@
 # Adversarial QA/QC Audit — `shipstation_integration` (`main-v13`)
 
-**Audience:** Product Manager (fulfillment / ERP). Not an engineering task list.  
-**Scope:** Read-only review of `ParsimonyGit/shipstation_integration` @ `main-v13` (`ea09a02`), cross-checked against production coupling in `ParsimonyGit/fps_customizations` @ `develop`.  
-**Date:** 2026-08-23  
-**Constraint honored:** No merge, no deploy, no migration, no live ShipStation API calls.
+**Audience:** Product Manager (fulfillment / ERP) and Repo Boss (routing only). Not an engineering task list.  
+**Scope:** Read-only review of `ParsimonyGit/shipstation_integration` @ `main-v13` (`ea09a02`), cross-checked against production coupling in `ParsimonyGit/fps_customizations` @ `develop` on **fps.parsimony.com**.  
+**Date:** 2026-08-23 (addendum folded same day)  
+**Constraint honored:** No merge, no deploy, **no migrate recommendation**, no live ShipStation API calls.
 
 Docs in the README were treated as untrusted. Claims below are from code.
+
+### Routing legend (Repo Boss)
+
+Use the **Route** column to hand work to the right repo **via Product Manager**. Do not assign people from this document.
+
+| Tag | Meaning |
+|---|---|
+| `SS` | Finding lives in `shipstation_integration` (`main-v13`) |
+| `FPS` | Finding lives in `fps_customizations` (`develop`) — route to FPS via PM |
+| `BOTH` | Split: integration contract here, production writer/hook there |
+| `SCANNER` | Touches the must-protect warehouse scanner contract (see below) |
+| `HOLD` | Do not ship / do not migrate / do not merge |
+
+### Must-protect scanner contract (do not remove or “simplify”)
+
+Verified on FPS `develop`. **Keep these behaviors.** Any `SS` change that stops firing the hook, changes its arguments `(store, so)`, or submits the SO before the hook returns, **breaks the floor**.
+
+| Surface | Path | Contract |
+|---|---|---|
+| Scan lookup | `fps_customizations/api/selling.py` `check_sales_order` | Accepts Sales Order **name** **or** `shipstation_order_id`; requires `docstatus=1`; refuses fully delivered stock qty |
+| Roll L/W | hook `update_shipstation_order_before_submit` → `fps_customizations/hook_events/sales_order.py` `update_order_item_details` | Writes `order_roll_length` / `order_roll_width` (and custom-order description) onto SO items **before submit** |
+| Writer | `shipstation_integration/orders.py` `create_erpnext_order` | `save` → hook `(store, so)` → `save` → `submit` |
+
+Resilience work (catch API errors so the SO still submits) is allowed **only if** roll L/W still lands when ShipStation options exist. Do **not** propose deleting this hook.
 
 ---
 
 ## Executive stand
 
-This app is **not safe to treat as a finished production integration**. On FPS it is the order-intake pipe that warehouse scanners depend on (`check_sales_order` accepts a Sales Order name **or** `shipstation_order_id`; roll length/width are written only in the before-submit hook). The sync is a 24-hour UTC poll with **no unique constraint**, **no order-status filter**, and **idempotency keyed by `shipstation_order_id` on submitted docs only**. That combination can duplicate Sales Orders, skip cancelled/on-hold orders into inventory, miss anything older than 24 hours, and — when FPS auto-invoicing and ShipStation shipment flags overlap — create a second Delivery Note or Sales Invoice. Label generation is a paid ShipStation API call gated only in JavaScript. Tests are an empty stub. Open PRs #57 and #80 are bitrot and must not be merged onto FPS. **Do not upgrade this site off ERPNext v13, do not add a second ShipStation Settings account, and do not run leftover FPS “fire-drill” patches.** Stabilize identity + dual-write paths on v13 before any version or feature work.
+This app is **not safe to treat as a finished production integration**. On **fps.parsimony.com** it is the order-intake pipe for warehouse scanners (`check_sales_order` + protected roll L/W hook). Sync is a 24-hour UTC poll with **no unique constraint**, **no order-status filter**, and **idempotency keyed by `shipstation_order_id` on submitted docs only**. FPS re-queues the same `list_orders` job on scheduler `all` (dedupe via `is_job_queued`) on the **same DO box** as warehouse scans, stretching the long queue with one extra live `get_order` per SO. That combination can duplicate Sales Orders, import cancelled/on-hold orders, miss anything older than 24 hours, and — when scanner invoicing, ShipStation shipment flags, `DN.on_submit` → `create_shipment`, and `daily_long` `complete_deliveries` overlap — double-write Delivery Notes or Sales Invoices. `CustomShipment.on_submit` only `db_set`s status Submitted. Label generation is a paid API call gated only in JavaScript. Leftover FPS fire-drill scripts are not in `patches.txt`. Tests are an empty stub. PRs #57 and #80 are bitrot. **Do not migrate this site off ERPNext v13. Do not add a second ShipStation Settings account. Do not run leftover patches. Do not break the roll L/W hook.** Stabilize identity and dual-write paths on v13 in place.
 
 ---
 
 ## Verdict table
 
-| Area | Verdict | Severity | Why it matters on FPS |
-|---|---|---|---|
-| Order identity / duplicates | **FAIL** | Critical | No unique index; exists-check is `docstatus=1` only; FPS also re-queues `list_orders` on scheduler `all` |
-| Cancelled / on-hold import | **FAIL** | Critical | `list_orders` never filters `orderStatus`; cancelled SS orders can become submitted SOs |
-| 24-hour lookback + UTC | **FAIL** | High | Missed jobs permanently drop orders; scanners then show “no submitted order” |
-| Split / multi-package shipments | **FAIL** | High | SI / DN / Shipment idempotency is by **order id**, not shipment id; second package is dropped |
-| Label generation (money) | **FAIL** | High | Whitelisted; `enable_label_generation` is client-side only; each click buys a label |
-| FPS scanner contract | **FAIL** | Critical | Before-submit hook does a live `get_order`; any exception leaves a **draft** SO scanners cannot see |
-| FPS dual invoice / DN paths | **FAIL** | Critical | Scanner invoices + `DN.on_submit` → `create_erpnext_shipment` + daily `complete_deliveries` can double-write |
-| Second ShipStation account | **FAIL** | High | Integration loops all settings; FPS uses `get_last_doc` and will hit the wrong account |
-| Leftover FPS fire-drill patches | **FAIL** | Critical | Not in `patches.txt`; several call live ShipStation or mass-create invoices |
-| Ounce → pound (live code) | **FAIL** | High | `shipments.py` still divides `weight.value` by 16 with no unit check; prior FPS patch was a one-time backfill |
-| Shopify-via-ShipStation (VBS) | **PASS** | — | `shopify_store` field does not exist on the store DocType, so Shopify hook never steals these orders |
-| Settings API secret storage | **WARN** | Medium | Password fields; listed in list view; System Manager full access; no dedicated role |
-| Product sync | **WARN** | Medium | README claims periodic product fetch; only a manual button; first-page count is wrong |
-| Tests / CI | **FAIL** | High | Empty `TestCase`; CircleCI only `semantic-release` on obsolete `master` |
-| ERPNext v14 / v15 / v16 | **FAIL** | High | `main-v13` asset pipeline and custom-field `insert_after` will break; no v16 branch |
-| PRs #57 / #80 | **FAIL** (do not merge) | High | Bitrot; #57 would fight the FPS roll-dimension hook; #80 is dirty against `main-v14` |
-| `shipstation-client` pin | **WARN** | High | Git `@master` on a private fork; upstream AgriTheory now requires Python 3.10+ |
-| Warehouse filter / `since_date` | **PASS** | — | Implemented; empty warehouse list means “all warehouses” (documented in the field) |
-| Amazon hook off-ramp | **WARN** | Medium | Requires `amazon_seller_setup` on the store row — that field is **not** in this app’s DocType |
+| Area | Verdict | Severity | Route | Why it matters on FPS |
+|---|---|---|---|---|
+| Order identity / duplicates | **FAIL** | Critical | `BOTH` + `SCANNER` | No unique index; exists-check is `docstatus=1` only; FPS re-queues `list_orders` on `all` on the same DO box as scans |
+| Cancelled / on-hold import | **FAIL** | Critical | `SS` + `SCANNER` | No `orderStatus` filter; cancelled SS orders become submitted SOs the floor can scan |
+| 24-hour lookback + UTC | **FAIL** | High | `SS` + `SCANNER` | Missed jobs permanently drop orders; scanners show “no submitted order” |
+| Same-box queue contention | **FAIL** | High | `FPS` + `SCANNER` | `enqueue_list_orders` + hook `get_order` share the long queue with warehouse-scan load |
+| Split / multi-package shipments | **FAIL** | High | `SS` | SI / DN / Shipment idempotency is by **order id**, not shipment id |
+| Label generation (money) | **FAIL** | High | `SS` | Whitelisted; `enable_label_generation` is client-side only |
+| Scanner hook failure → draft SO | **FAIL** | Critical | `BOTH` + `SCANNER` | Live `get_order` in protected hook; uncaught exception leaves draft; **do not remove the hook** |
+| Dual invoice / DN paths | **FAIL** | Critical | `BOTH` + `SCANNER` | Scanner SI + SS poll + `DN.on_submit` → `create_shipment` + `complete_deliveries` |
+| `CustomShipment.on_submit` | **WARN** | Medium | `FPS` | Only `db_set` status Submitted; skips parent `Shipment.on_submit` |
+| Single-account assumption | **FAIL** | High | `FPS` | Integration loops all settings; FPS `get_last_doc` hits the wrong account if a second row exists |
+| Leftover fire-drill scripts | **FAIL** | Critical | `FPS` | Not in `patches.txt`; live API or mass invoices |
+| Ounce → pound (live writer) | **FAIL** | High | `BOTH` | `shipments.py` still `/16` with no unit; FPS patch was a one-time backfill |
+| COGS on Shipment | **WARN** | Medium | `FPS` | $0 COGS when a DN already has more than one Shipment |
+| Shopify-via-ShipStation (VBS) | **PASS** | — | `BOTH` | Stores “VBS Amazon”, “Vapor Barrier Supply” stay on SS path; do not wire `shopify_store` |
+| `mark_items_for_purchase` | **PASS** | — | `FPS` | Store custom field + `update_shipstation_item_before_save`; new items only |
+| Settings API secret storage | **WARN** | Medium | `SS` | Password fields; `in_list_view`; System Manager full access |
+| Product sync | **WARN** | Medium | `SS` | README claims periodic fetch; only a manual button |
+| Tests / CI | **FAIL** | High | `SS` | Empty `TestCase`; CircleCI on obsolete `master` |
+| ERPNext v14 / v15 / v16 | **FAIL** | High | `HOLD` | Do **not** migrate `fps.parsimony.com`; v13 assets/fields break on v14+ |
+| PRs #57 / #80 | **FAIL** | High | `HOLD` | Bitrot; #57 would fight the protected roll L/W hook |
+| `shipstation-client` pin | **WARN** | High | `SS` | Git `@master`; upstream AgriTheory is Python 3.10+ |
+| Warehouse filter / `since_date` | **PASS** | — | `SS` | Empty warehouse list means all warehouses (field description) |
+| Amazon hook off-ramp | **WARN** | Medium | `BOTH` | `amazon_seller_setup` is not on this app’s Store DocType; FPS invoicing reads it |
+
+---
+
+## Repo Boss routing (via Product Manager)
+
+Findings that **touch `fps_customizations` or the scanner** — route to FPS through PM. Findings tagged `SS` only can stay on this repo.
+
+| Finding | Route | FPS / scanner touch |
+|---|---|---|
+| Duplicate SOs from overlapping `list_orders` | `BOTH` + `SCANNER` | FPS `enqueue_list_orders` on `all` + same-box long queue; scanner sees first submitted SO |
+| Same-box scan vs sync contention | `FPS` + `SCANNER` | `is_job_queued` does not protect warehouse request workers from long-queue saturation |
+| Hook throw → draft SO | `BOTH` + `SCANNER` | **Protect** `update_shipstation_order_before_submit`; harden caller + hook, do not remove |
+| Dual SI/DN + `complete_deliveries` | `BOTH` + `SCANNER` | Scanner `create_delivery_note`; FPS `DN.on_submit` → `create_shipment`; `daily_long` auto-submit |
+| `CustomShipment.on_submit` status-only | `FPS` | Override skips parent submit behavior |
+| Single-account / `get_last_doc` | `FPS` | Explicit “one instance” comments; leftover patches same assumption |
+| Fire-drills not in `patches.txt` | `FPS` | `fetch_missing_shipstation_shipments`, `update_shipstation_order_details`, `create_invoices_for_delivered_orders` |
+| Ounce/COGS historical patches | `BOTH` | Live `/16` is `SS`; one-time patches + COGS math are `FPS` |
+| VBS Shopify-via-SS | `BOTH` | Do not add `shopify_store` on “VBS Amazon” / “Vapor Barrier Supply” |
+| `mark_items_for_purchase` | `FPS` | Custom field + `update_shipstation_item_before_save`; new items only |
+| v13→v16 / #57 / #80 | `HOLD` | Do **not** migrate fps.parsimony.com; #57 fights protected roll L/W |
+
+---
+
+## Architecture (FPS production, not the README)
+
+```
+ShipStation API
+    ^
+    |  hourly_long: list_orders + list_shipments          [SS]
+    |  scheduler all: enqueue_list_orders (if not queued) [FPS]  ← same DO box as scanners
+    v
+create_erpnext_order
+    save SO (draft)
+    → update_shipstation_order_before_submit  [FPS, PROTECT]
+         client.get_order → order_roll_length / order_roll_width
+    save + submit SO
+    → check_sales_order(name | shipstation_order_id)      [FPS scanner]
+    → create_delivery_note (often invoices here)          [FPS scanner]
+    → DN.on_submit → enqueue _create_shipment             [FPS]
+         get_last_doc(Shipstation Settings)               [FPS single-account]
+         create_erpnext_shipment (SI/DN/Shipment flags)   [SS]
+    → CustomShipment.on_submit = db_set status only       [FPS]
+    → daily_long complete_deliveries submits draft DNs    [FPS]
+```
+
+README “multi-account + periodic products” is **not** the FPS architecture. FPS is **one** Shipstation Settings row; products are manual; Shopify marketplace volume for VBS is this path, not `shopify_integration`.
 
 ---
 
 ## Top 10 risks (with paths)
 
-### 1. Duplicate Sales Orders (money + warehouse chaos)
+### 1. Duplicate Sales Orders (money + warehouse chaos) — `BOTH` + `SCANNER`
 
 **Paths:** `shipstation_integration/orders.py` (`validate_order`, `create_erpnext_order`); `fps_customizations/hooks.py` (`scheduler_events["all"]`); `fps_customizations/hook_events/shipstation.py` (`enqueue_list_orders`); `parsimony/utils/__init__.py` (`is_job_queued`).
 
 `validate_order` only skips if a **submitted** Sales Order already has that `shipstation_order_id`. There is no unique index. `create_erpnext_order` saves, optionally runs the FPS hook, submits, then `frappe.db.commit()`. Two overlapping workers that both pass the exists-check create two submitted SOs for one marketplace order.
 
-FPS makes this likely: `shipstation_integration` already runs `list_orders` on `hourly_long`, and FPS **re-enqueues the same method** on scheduler `all` (~every 4 minutes) if `is_job_queued(..., queue="long")` is false. `is_job_queued` only inspects RQ jobs whose `job_name` equals that string **and** whose queue name contains `"long"`. It does not serialize against a scheduler tick that has not yet appeared in RQ, and it does not lock the database. During warehouse-scan load the long queue is also doing one extra live `get_order` per SO (FPS hook). That stretches runtime and widens the overlap window.
+FPS makes this likely: `shipstation_integration` already runs `list_orders` on `hourly_long`, and FPS **re-enqueues the same method** on scheduler `all` (~every 4 minutes) if `is_job_queued(..., queue="long")` is false. `is_job_queued` only inspects RQ jobs whose `job_name` equals that string **and** whose queue name contains `"long"`. It does not serialize against a scheduler tick that has not yet appeared in RQ, and it does not lock the database.
 
-**FPS impact:** `check_sales_order` returns the first matching submitted SO. Pickers can fulfill one copy while billing/stock land on the other.
+**Same DO box as warehouse scans:** `list_orders` plus the protected hook’s extra `get_order` per SO occupy the **long** queue on the same machine that serves scanner HTTP (`check_sales_order` / `create_delivery_note`). Deduping the job name does not stop CPU, DB, or ShipStation rate-limit contention with pickers. A long-running sync widens the duplicate-SO window **and** slows scan lookups.
 
-### 2. Cancelled / on-hold / unpaid ShipStation orders become live ERP orders
+**FPS / scanner impact:** `check_sales_order` returns the first matching submitted SO. Pickers can fulfill one copy while billing/stock land on the other.
+
+### 2. Cancelled / on-hold / unpaid ShipStation orders become live ERP orders — `SS` + `SCANNER`
 
 **Path:** `shipstation_integration/orders.py` (`list_orders` parameters).
 
-Parameters sent: `store_id`, `modify_date_start`, `modify_date_end`. No `orderStatus`. ShipStation will return cancelled, on-hold, and awaiting-payment orders. Those pass `validate_order` and are submitted. That is unearned revenue and phantom demand on inventory.
+Parameters sent: `store_id`, `modify_date_start`, `modify_date_end`. No `orderStatus`. ShipStation will return cancelled, on-hold, and awaiting-payment orders. Those pass `validate_order` and are submitted. That is unearned revenue and phantom demand on inventory. Those SOs are then **scan-eligible** via `check_sales_order`.
 
-### 3. Anything older than 24 hours UTC is silently dropped
+### 3. Anything older than 24 hours UTC is silently dropped — `SS` + `SCANNER`
 
 **Path:** `shipstation_integration/orders.py` lines 61–76; same pattern in `shipments.py` lines 60–80.
 
-Lookback is `datetime.utcnow() - 24h`, hardcoded. Comment admits the API “behaves oddly” on shorter windows. If a job fails, the queue backs up, or ShipStation rate-limits past that window, those orders **never retry**. Scanners then return *“No submitted order found against this ID”*. There is no cursor / watermark stored on Shipstation Settings.
+Lookback is `datetime.utcnow() - 24h`, hardcoded. Comment admits the API “behaves oddly” on shorter windows. If a job fails, the queue backs up (including behind warehouse-scan load), or ShipStation rate-limits past that window, those orders **never retry**. Scanners then return *“No submitted order found against this ID”*. There is no cursor / watermark stored on Shipstation Settings.
 
-### 4. FPS scanner contract breaks when the before-submit hook fails
-
-**Must-protect contract (verified):**
-
-| Surface | Path | Behavior |
-|---|---|---|
-| Scan lookup | `fps_customizations/api/selling.py` `check_sales_order` | Accepts SO **name** or `shipstation_order_id`; requires `docstatus=1`; refuses fully delivered stock qty |
-| Roll dimensions | `fps_customizations/hook_events/sales_order.py` `update_order_item_details` | Wired as `update_shipstation_order_before_submit` |
-| Writer | `shipstation_integration/orders.py` `create_erpnext_order` | `save` → hook → `save` → `submit` |
+### 4. Protected scanner hook fails closed (draft SO) — `BOTH` + `SCANNER`
 
 The FPS hook calls `settings.client().get_order(so.shipstation_order_id)` and maps option names containing `length` / `width` onto `order_roll_length` / `order_roll_width`. Those fields drive CTO BOM matching in `get_active_boms`.
 
 If `get_order` throws (timeout, 429, 401), the exception is **not** caught in `create_erpnext_order` (only `frappe.LinkValidationError` is). The SO remains **draft**. Scanners only query `docstatus=1`. Floor result: barcode / SS order id does nothing, while the order sits in drafts.
 
-### 5. Double Delivery Note / double Sales Invoice (money + inventory)
+**Protect, do not remove:** keep `update_shipstation_order_before_submit` → `update_order_item_details(store, so)`. Allowed change is resilience (SO still submits; retry L/W) without changing hook name, signature, or field writes. Merging PR #57 option-mapping onto the same items **is** a break of this contract.
+
+### 5. Double Delivery Note / double Sales Invoice (money + inventory) — `BOTH` + `SCANNER`
 
 Three writers exist on the same SO:
 
@@ -91,7 +161,7 @@ Race that hurts: ShipStation poll submits a DN while the scanner still holds a d
 
 `amazon_seller_setup` is **not** a field on this app’s `Shipstation Store` DocType. FPS reads it anyway. If the Amazon app did not add that custom field, the guard is always false and **Amazon-named stores get invoiced by the scanner**.
 
-### 6. Paid labels can be purchased by any logged-in Desk user
+### 6. Paid labels can be purchased by any logged-in Desk user — `SS`
 
 **Paths:** `shipstation_integration/shipping.py` `create_shipping_label` / `_create_shipping_label`; `public/js/shipping.js`.
 
@@ -99,7 +169,7 @@ Race that hurts: ShipStation poll submits a DN while the scanner still holds a d
 
 `push_attachment_update` publishes `eval_js` with the attachment name interpolated into JavaScript. That is a separate desk-security defect.
 
-### 7. Multi-shipment / split orders are discarded after the first
+### 7. Multi-shipment / split orders are discarded after the first — `SS`
 
 **Path:** `shipstation_integration/shipments.py` `create_sales_invoice`, `create_delivery_note`, `create_shipment`.
 
@@ -107,7 +177,7 @@ Comments in `orders.py` say split ShipStation orders are intentionally not impor
 
 Voided shipments call `cancel()` on SI / DN / Shipment. If the SI is paid or the DN is billed, cancel throws and the rest of that store’s shipment batch stops (no per-shipment try/except in `list_shipments`).
 
-### 8. A second ShipStation Settings document breaks FPS
+### 8. A second ShipStation Settings document breaks FPS — `FPS`
 
 **Integration:** `list_orders` / `list_shipments` iterate **all** `enabled` settings. That part scales.
 
@@ -118,9 +188,9 @@ Voided shipments call `cancel()` on SI / DN / Shipment. If the SI is paid or the
 
 `get_last_doc` is “most recently modified,” not “the enabled one,” not “the one on this DN.” A sandbox or second account silently retargets warehouse shipment creation and any fire-drill.
 
-### 9. Leftover fire-drill scripts are live-API / mass-money bombs
+### 9. Leftover fire-drill scripts are live-API / mass-money bombs — `FPS`
 
-**`fps_customizations/patches.txt` does not list these** (they will not run on migrate, but they are importable and look like patches):
+**`fps_customizations/patches.txt` does not list these** (they will not run on migrate, but they are importable and look like patches). **Do not add them to `patches.txt` and do not migrate to “clean this up.”**
 
 | File | Live ShipStation? | What it does |
 |---|---|---|
@@ -139,7 +209,7 @@ Registered (already-migrated) money patches:
 - `update_cost_of_goods_in_shipments` — backfill `cost_of_goods`
 - `update_shipment_amount_in_shipments` — **live API** per zero-amount Shipment (already in `patches.txt`; re-running migrate will not re-fire, but copying the file onto a sandbox with prod keys will)
 
-### 10. Client pin + empty tests = no safety net
+### 10. Client pin + empty tests = no safety net — `SS`
 
 **Paths:** `requirements.txt`; `shipstation_integration/shipstation_integration/doctype/shipstation_settings/test_shipstation_settings.py`; `.circleci/config.yml`.
 
@@ -186,7 +256,9 @@ The only test class is `pass`. CircleCI releases from branch `master`, which no 
 | Scanner API | `api/selling.py` | `check_sales_order`, `get_sales_order`, `create_delivery_note` |
 | Store custom field | `fps_customizations/setup.py` | `Shipstation Store.mark_items_for_purchase` |
 
-Shopify traffic for **“VBS Amazon”** and **“Vapor Barrier Supply”** is ShipStation-store intake, not `shopify_integration`. On this app, `is_shopify_store` is set when the marketplace name contains `"Shopify"`, but `validate_order` only diverts if `store.shopify_store` is set — and **that field does not exist** on `shipstation_store.json`. Those orders stay on this create-SO path. That matches the FPS design. Do not add a `shopify_store` link on those rows without a coordinated cutover.
+Shopify traffic for **“VBS Amazon”** and **“Vapor Barrier Supply”** is ShipStation-store intake, not `shopify_integration`. On this app, `is_shopify_store` is set when the marketplace name contains `"Shopify"`, but `validate_order` only diverts if `store.shopify_store` is set — and **that field does not exist** on `shipstation_store.json`. Those orders stay on this create-SO path. That matches the FPS design. **Do not add a `shopify_store` link on those rows** (would skip SO create and starve the scanner).
+
+`mark_items_for_purchase` is an FPS custom field on `Shipstation Store` (`fps_customizations/setup.py`). `update_shipstation_item_before_save` → `mark_item_as_purchase` sets `is_purchase_item` **only when `item.is_new()`**, so a later SS match on an existing SKU will not flip purchase flags. Route: `FPS`.
 
 ---
 
@@ -261,6 +333,8 @@ Verified branches on the repo: `main-v13`, `main-v14`, `main-v15`. **No `main-v1
 
 Concrete break if someone benches `main-v13` on v14+: missing `bundle.js`, custom fields inserted after vanished standard fields, no `reload_doc` on Custom Field, possible `create_custom_fields` import failures. v15 branch tip is still titled “migrate to v14” in places — treat v15 as **unfinished**, not a productized upgrade path. v16 is **unassessed in-repo**.
 
+**Do not migrate `fps.parsimony.com`.** This audit is not a green light to move FPS to `main-v14` / `main-v15` / v16. The protected scanner hook, `CustomShipment` override, `mark_items_for_purchase`, and `enqueue_list_orders` are v13-era FPS coupling. A version jump is a separate Product decision after identity and dual-write FAILs are closed **in place**.
+
 ---
 
 ## Tests
@@ -273,7 +347,7 @@ Concrete break if someone benches `main-v13` on v14+: missing `bundle.js`, custo
 
 **Can they run without a live ShipStation account?** The stub can, and it asserts nothing. Any real test of `client()`, `get_orders`, `get_items`, `create_shipping_label`, or the FPS before-submit hook **will call the live API** unless a fake `ShipStation` is injected. There is no fixture, no `httpx` mock, no sandbox flag.
 
-**Sandbox rule (operational):** a copied site with production Password fields is a live account. Do not press Get Orders / Get Shipments / Get Items / Shipping Label. Do not execute leftover patches. Do not enqueue `list_orders` against prod keys.
+**Sandbox rule (operational, FPS):** a copied site of fps.parsimony.com with production Password fields **is** the live ShipStation account. Blank or rotate keys before any use. Do not press Get Orders / Get Shipments / Get Items / Shipping Label. Do not execute leftover patches. Do not enqueue `list_orders` against prod keys. Do not run `bench migrate` as a way to “apply the audit.”
 
 ---
 
@@ -284,8 +358,8 @@ Concrete break if someone benches `main-v13` on v14+: missing `bundle.js`, custo
 - Open since 2022-09-21; last comment 2023-03-10 (author said they would rebase to v14).
 - Adds `hours_to_fetch`, Shipstation Option mapping, and custom field factory on Settings.
 - During order import it **saves Settings for every unseen option name** (write amplification + dirty Settings during sync).
-- **Unsafe for FPS:** it writes item option values onto SO Item fields in the same pipeline FPS already uses for roll length/width. Two mappers, one SO. Also uses v14-oriented Virtual DocType patterns the reviewer said v13 does not support well.
-- **Recommendation:** close as abandoned; do not merge onto the FPS bench.
+- **Unsafe for FPS / scanner:** it writes item option values onto SO Item fields in the same pipeline as the **protected** roll L/W hook. Two mappers, one SO. Also uses v14-oriented Virtual DocType patterns the reviewer said v13 does not support well.
+- **Recommendation:** close as abandoned; do not merge onto the FPS bench. Merging it is a scanner-contract break.
 
 ### #80 — `feat: metadata import (updated for v14)` → `main-v14`
 
@@ -327,44 +401,49 @@ COGS: `CustomShipment.on_submit` does **not** call `Shipment.on_submit`. Status 
 
 ---
 
-## Recommended immediate actions vs hold
+## Ship vs hold
 
-### Do now (operations — no feature work)
+### Ship (operations only — no code, no migrate)
 
-1. **Treat FPS as single-account, v13-only.** Do not add a second Shipstation Settings row. Do not install `main-v14` / `main-v15` / unbranched v16 on `fps.parsimony.com`.
-2. **Do not merge #57 or #80.** Close them or label `do-not-merge / bitrot`.
-3. **Do not run leftover FPS patches** on production or on a sandbox that still has production API keys — especially `create_invoices_for_delivered_orders` and `fetch_missing_shipstation_shipments`.
-4. **Confirm store flags on FPS** (read-only): for VBS / marketplace stores, whether `create_sales_invoice` / `create_delivery_note` are on. If both scanner invoicing and those flags are on, the double-write path is live. Also confirm whether `amazon_seller_setup` actually exists on `Shipstation Store`.
-5. **Confirm `enable_label_generation` is off** unless a named role is supposed to buy labels. Assume the JS checkbox is not a control.
-6. **Sandbox copies:** rotate or blank API key/secret before any test. No Get Orders / label button / enqueue of `list_orders`.
+| Action | Route |
+|---|---|
+| Keep **one** Shipstation Settings row on fps.parsimony.com | `FPS` |
+| Stay on ERPNext v13 + `main-v13`. **Do not migrate.** | `HOLD` |
+| Do not merge #57 or #80 (scanner-contract / bitrot) | `HOLD` |
+| Do not execute leftover FPS scripts, especially `create_invoices_for_delivered_orders` and `fetch_missing_shipstation_shipments` | `FPS` |
+| Read-only confirm: store flags `create_sales_invoice` / `create_delivery_note` vs scanner invoicing; whether `amazon_seller_setup` exists | `BOTH` |
+| Confirm `enable_label_generation` off unless a named role is meant to buy labels | `SS` |
+| Sandbox copies: blank API key/secret **before** bench copy is used. No Get Orders / labels / `list_orders` enqueue / leftover patches | `BOTH` |
+| Do not add `shopify_store` on “VBS Amazon” or “Vapor Barrier Supply” | `BOTH` + `SCANNER` |
+| Do not re-run ounce or COGS patches | `FPS` |
 
-### Hold (do not start until Product accepts the risk register)
+### Hold (not a migrate plan)
 
-- Any ERPNext version upgrade that includes this app.
-- Enabling a second ShipStation account “because the app supports multi-account” (README is true for this repo, **false for FPS**).
-- Wiring `shopify_store` or `amazon_seller_setup` on VBS stores (would silently stop SO creation or change invoice ownership).
-- Metadata-import features from #57/#80.
-- Re-running ounce/COGS patches.
-- Relying on README “periodic product sync.”
+- Any ERPNext / Frappe version upgrade of fps.parsimony.com.
+- A second ShipStation account (“the app supports multi-account” is true for this repo, **false for FPS**).
+- Removing, renaming, or bypassing `update_shipstation_order_before_submit`.
+- Metadata import from #57/#80.
+- “Periodic product sync” as documented in the README (it is not scheduled).
 
-### Fix next (engineering, after PM priority) — outcomes, not a person-assigned list
+### Later outcomes (after PM priority) — not a person list
 
-These are **product outcomes**, not a named-owner punch list:
+Keep the scanner contract. These are **outcomes**, not assignments:
 
-- **Identity:** unique `shipstation_order_id` on submitted Sales Orders; treat drafts as in-flight; serialize `list_orders` (one job, one watermark).
-- **Intake filter:** only import the order statuses the warehouse is allowed to pick.
-- **Lookback:** persist last successful sync timestamp; stop depending on “last 24 hours.”
-- **One writer for SI/DN** on FPS: either the scanner or ShipStation shipment flags, not both; `complete_deliveries` must not submit ShipStation-linked drafts the floor still owns.
-- **Hook resilience:** scanner-visible SO even if roll-dimension fetch fails; dimensions must still land before pick.
-- **Labels:** server-side flag + role + one-label-per-shipment guard.
-- **Tests that never touch `ssapi.shipstation.com`:** mocked client; CI on `main-v13`.
-- **Pin `shipstation-client` to a commit** on the Parsimony fork.
+| Outcome | Route | Constraint |
+|---|---|---|
+| Unique `shipstation_order_id`; drafts in-flight; one serialized `list_orders` + watermark | `BOTH` | Must still call the protected hook with `(store, so)` before submit |
+| Import only pickable order statuses | `SS` | Scanners must not see cancelled SOs |
+| One SI/DN writer on FPS; `complete_deliveries` must not steal floor drafts | `FPS` + `SCANNER` | |
+| Hook **resilience** (SO still submits if `get_order` fails; L/W retry) | `BOTH` + `SCANNER` | **Do not remove the hook** |
+| Reduce same-box contention (queue isolation or backoff during scan hours) | `FPS` | |
+| Server-side label flag + role + one label per shipment | `SS` | |
+| Mocked tests that never hit live ShipStation; pin client to a commit | `SS` | |
 
 ---
 
 ## Explicit non-instruction
 
-This report is for **Product Manager** decision-making (what is unsafe, what to freeze, what to fund). It is **not** a punch list for Steve or any individual. Assignment, sequencing, and comms sit with Product.
+This report is for **Product Manager** decision-making (what is unsafe, what to freeze, what to fund). **Repo Boss** uses the Route tags to send `FPS` / `SCANNER` items to the FPS repo **through Product**, not as a side channel. It is **not** a punch list for Steve or any individual. Assignment, sequencing, and comms sit with Product. **Do not migrate.**
 
 ---
 
@@ -373,7 +452,8 @@ This report is for **Product Manager** decision-making (what is unsafe, what to 
 | Artifact | Ref |
 |---|---|
 | App branch | `ParsimonyGit/shipstation_integration` `main-v13` @ `ea09a02` |
-| FPS coupling | `ParsimonyGit/fps_customizations` `develop` (hooks, `api/selling.py`, patches) |
+| FPS site | fps.parsimony.com — `fps_customizations` `develop` (hooks, `api/selling.py`, patches). **Do not migrate.** |
+| Addendum | Product / Repo Boss: route `FPS`/`SCANNER` via PM; protect roll L/W hook; same-DO-box `enqueue_list_orders` |
 | Client (pinned) | `ParsimonyGit/shipstation-client` `@master` (private fork, Python ^3.8) |
 | Client (upstream) | `agritheory/shipstation-client` `master` (Python 3.10–3.12) |
 | Open PRs | [#57](https://github.com/ParsimonyGit/shipstation_integration/pull/57), [#80](https://github.com/ParsimonyGit/shipstation_integration/pull/80) |
